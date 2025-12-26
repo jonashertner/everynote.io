@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>everynote — encrypted notes for everyone</title>
     <meta name="description" content="Publish notes with end-to-end encryption. Private by default, public by choice.">
+    
+    <!-- Mobile App Experience -->
+    <meta name="theme-color" content="#faf8f5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="everynote">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◉</text></svg>">
     
     <!-- Fonts -->
@@ -31,6 +38,71 @@
             --radius: 6px;
             --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
+        [data-theme="mono"] {
+            --paper: #ffffff;
+            --paper-dark: #f5f5f5;
+            --ink: #000000;
+            --ink-light: #555555;
+            --ink-faint: #999999;
+            --accent: #000000;
+            --accent-hover: #333333;
+            --success: #000000;
+            --border: rgba(0, 0, 0, 0.12);
+            --shadow: rgba(0, 0, 0, 0.08);
+        }
+        
+        [data-theme="mono"] .logo-mark {
+            background: #000;
+        }
+        
+        [data-theme="mono"] .note-badge.public,
+        [data-theme="mono"] .note-badge.private {
+            background: rgba(0, 0, 0, 0.06);
+            color: #000;
+        }
+        
+        [data-theme="mono"] .encryption-badge {
+            background: rgba(0, 0, 0, 0.04);
+            color: #000;
+        }
+        
+        [data-theme="mono"] .heart {
+            color: #000;
+        }
+        
+        [data-theme="mono"] .toggle.active {
+            background: #000;
+        }
+        
+        [data-theme="mono"] .copy-btn.copied {
+            background: #000;
+            border-color: #000;
+        }
+        
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--ink-light);
+            flex-shrink: 0;
+        }
+        
+        .theme-toggle:hover {
+            border-color: var(--ink-faint);
+            color: var(--ink);
+        }
+        
+        .theme-toggle .icon-mono { display: none; }
+        [data-theme="mono"] .theme-toggle .icon-color { display: none; }
+        [data-theme="mono"] .theme-toggle .icon-mono { display: block; }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { font-size: 16px; -webkit-font-smoothing: antialiased; }
@@ -487,23 +559,425 @@
         footer a:hover { color: var(--accent); }
         .heart { display: inline-block; color: var(--accent); animation: pulse 1.5s ease-in-out infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        /* ============================================
+           MOBILE OPTIMIZATIONS
+           ============================================ */
+        
+        /* Safe area support for notched devices */
+        @supports (padding: max(0px)) {
+            .container {
+                padding-left: max(20px, env(safe-area-inset-left));
+                padding-right: max(20px, env(safe-area-inset-right));
+            }
+            .toast {
+                bottom: max(24px, env(safe-area-inset-bottom));
+            }
+        }
+        
         @media (max-width: 640px) {
-            header { padding: 32px 0 28px; }
-            .logo { font-size: 1.75rem; }
-            .read-view { padding: 32px 24px; }
-            .read-title { font-size: 1.75rem; }
-            .actions { flex-direction: column; }
-            .btn { justify-content: center; }
-            .toolbar { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            .share-input-wrap { flex-direction: column; }
+            /* Base adjustments */
+            html { font-size: 15px; }
+            .container { padding: 0 16px; }
+            
+            /* Header - compact but elegant */
+            header { 
+                padding: 24px 0 20px; 
+                margin-bottom: 24px;
+            }
+            .logo { 
+                font-size: 1.6rem; 
+                gap: 10px;
+            }
+            .logo-mark { 
+                width: 8px; 
+                height: 8px; 
+            }
+            .tagline { 
+                font-size: 0.8rem; 
+                margin-top: 6px;
+                line-height: 1.4;
+            }
+            .theme-toggle {
+                width: 40px;
+                height: 40px;
+            }
+            
+            /* Navigation - full width pills */
+            nav { 
+                margin-bottom: 24px;
+                gap: 6px;
+            }
+            .nav-btn { 
+                flex: 1; 
+                justify-content: center;
+                padding: 12px 16px;
+                font-size: 0.9rem;
+                border-radius: 8px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .nav-btn:active {
+                transform: scale(0.97);
+            }
+            
+            /* Form elements - larger touch targets */
+            .form-group { margin-bottom: 20px; }
+            label { 
+                font-size: 0.7rem; 
+                margin-bottom: 8px;
+            }
+            input[type="text"], textarea {
+                font-size: 16px !important; /* Prevents iOS zoom */
+                padding: 14px;
+                border-radius: 10px;
+            }
+            .title-input { 
+                font-size: 1.35rem !important; 
+                padding: 12px 14px;
+            }
+            
+            /* Editor - optimized for thumb typing */
+            .editor-wrap { 
+                border-radius: 10px; 
+            }
+            .toolbar {
+                padding: 6px 8px;
+                gap: 1px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .toolbar::-webkit-scrollbar { display: none; }
+            .toolbar-group { gap: 1px; }
+            .toolbar-divider { 
+                margin: 0 6px; 
+                height: 24px;
+            }
+            .toolbar-btn { 
+                width: 36px; 
+                height: 36px;
+                border-radius: 6px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .toolbar-btn:active {
+                background: var(--paper-dark);
+                transform: scale(0.92);
+            }
+            .toolbar-btn svg { 
+                width: 18px; 
+                height: 18px; 
+            }
+            .toolbar-btn[data-tooltip]:hover::after { 
+                display: none; /* Hide tooltips on mobile */
+            }
+            .content-input { 
+                min-height: 220px; 
+                padding: 14px;
+                line-height: 1.7;
+            }
+            
+            /* Toggle row - better spacing */
+            .toggle-row {
+                padding: 14px 16px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
+            .toggle-label { gap: 10px; }
+            .toggle-label span { font-size: 0.85rem; }
+            .toggle-hint { font-size: 0.75rem; }
+            .toggle {
+                width: 52px;
+                height: 28px;
+                border-radius: 14px;
+            }
+            .toggle::after {
+                width: 22px;
+                height: 22px;
+            }
+            .toggle.active::after { 
+                transform: translateX(24px); 
+            }
+            
+            /* Password section */
+            .password-input {
+                font-size: 16px !important;
+            }
+            .password-strength { font-size: 0.75rem; }
+            
+            /* Encryption badge */
+            .encryption-badge {
+                font-size: 0.7rem;
+                padding: 5px 10px;
+                margin-top: 12px;
+            }
+            
+            /* Buttons - full width, larger touch */
+            .actions { 
+                flex-direction: column; 
+                gap: 10px;
+                margin-top: 20px;
+            }
+            .btn { 
+                justify-content: center;
+                padding: 16px 24px;
+                font-size: 0.95rem;
+                border-radius: 10px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .btn:active:not(:disabled) {
+                transform: scale(0.98);
+            }
+            .btn-primary:active:not(:disabled) {
+                transform: scale(0.98);
+            }
+            
+            /* Note cards - touch optimized */
+            .note-item {
+                padding: 18px;
+                border-radius: 12px;
+                margin-bottom: 10px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .note-item:active {
+                transform: scale(0.99);
+                background: var(--paper-dark);
+            }
+            .note-title { font-size: 1.15rem; }
+            .note-badge { 
+                font-size: 0.65rem; 
+                padding: 3px 8px;
+            }
+            .note-preview { font-size: 0.85rem; }
+            .note-meta { 
+                margin-top: 10px; 
+                font-size: 0.75rem; 
+            }
+            
+            /* Empty state */
+            .empty-state { 
+                padding: 60px 24px; 
+            }
+            .empty-state h3 { font-size: 1.3rem; }
+            
+            /* Read view - immersive reading */
+            .read-view { 
+                padding: 24px 20px;
+                border-radius: 12px;
+                margin-bottom: 24px;
+            }
+            .read-title { 
+                font-size: 1.6rem;
+                margin-bottom: 12px;
+            }
+            .read-meta { 
+                gap: 10px;
+                margin-bottom: 24px;
+                padding-bottom: 20px;
+                font-size: 0.8rem;
+            }
+            .read-content { 
+                font-size: 1.1rem;
+                line-height: 1.85;
+            }
+            .read-content h1 { font-size: 1.5em; }
+            .read-content h2 { font-size: 1.25em; }
+            .read-content h3 { font-size: 1.1em; }
+            .read-content blockquote {
+                padding-left: 1em;
+                margin: 0.8em 0;
+            }
+            .read-content pre {
+                padding: 0.8em;
+                font-size: 0.8em;
+            }
+            .read-actions {
+                gap: 8px;
+                margin-top: 24px;
+                padding-top: 20px;
+            }
+            .read-actions .btn {
+                padding: 14px 20px;
+                flex: 1;
+                min-width: calc(50% - 4px);
+            }
+            .read-actions .btn-danger {
+                flex: none;
+                width: 100%;
+                margin-top: 4px;
+            }
+            
+            /* Decrypt prompt */
+            .decrypt-prompt {
+                padding: 48px 24px;
+                border-radius: 12px;
+            }
+            .decrypt-prompt h3 { font-size: 1.3rem; }
+            .decrypt-prompt input { 
+                max-width: 100%;
+                font-size: 16px !important;
+            }
+            .decrypt-prompt .actions {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .decrypt-prompt .btn {
+                flex: 1;
+                min-width: 120px;
+            }
+            
+            /* Modal - full screen on mobile */
+            .modal-overlay {
+                align-items: flex-end;
+                padding: 0;
+            }
+            .modal {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 20px 20px 0 0;
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+            .modal-header {
+                padding: 20px 20px 16px;
+                position: sticky;
+                top: 0;
+                background: white;
+                z-index: 1;
+            }
+            .modal-header::before {
+                content: '';
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 36px;
+                height: 4px;
+                background: var(--ink-faint);
+                border-radius: 2px;
+            }
+            .modal-header h3 { 
+                font-size: 1.2rem;
+                margin-top: 8px;
+            }
+            .modal-close {
+                width: 36px;
+                height: 36px;
+                margin-top: 4px;
+            }
+            .modal-body { 
+                padding: 16px 20px 32px;
+            }
+            .share-option { margin-bottom: 20px; }
+            .share-option-label { 
+                font-size: 0.8rem;
+                margin-bottom: 8px;
+            }
+            .share-input-wrap { 
+                flex-direction: column;
+                gap: 10px;
+            }
+            .share-input {
+                font-size: 0.75rem;
+                padding: 14px;
+                border-radius: 10px;
+            }
+            .embed-input { height: 72px; }
+            .copy-btn { 
+                padding: 14px 20px;
+                border-radius: 10px;
+                font-size: 0.85rem;
+            }
+            .share-hint { font-size: 0.7rem; }
+            
+            /* Toast - bottom safe area */
+            .toast {
+                left: 16px;
+                right: 16px;
+                transform: translateY(100px);
+                width: auto;
+                text-align: center;
+                border-radius: 12px;
+                padding: 16px 20px;
+            }
+            .toast.visible {
+                transform: translateY(0);
+            }
+            
+            /* Setup notice */
+            .setup-notice {
+                padding: 14px 16px;
+                font-size: 0.8rem;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
+            
+            /* Footer - compact */
+            footer {
+                padding: 32px 0;
+                margin-top: 40px;
+                font-size: 0.75rem;
+            }
+        }
+        
+        /* Extra small devices */
+        @media (max-width: 380px) {
+            .container { padding: 0 12px; }
+            .logo { font-size: 1.4rem; }
+            .tagline { font-size: 0.75rem; }
+            .read-title { font-size: 1.4rem; }
+            .toolbar-btn { width: 32px; height: 32px; }
+            .toolbar-btn svg { width: 16px; height: 16px; }
+        }
+        
+        /* Landscape phone optimization */
+        @media (max-width: 640px) and (orientation: landscape) {
+            header { padding: 16px 0 12px; }
+            .content-input { min-height: 150px; }
+            .modal { max-height: 90vh; }
+            .decrypt-prompt { padding: 32px 24px; }
+            .empty-state { padding: 40px 24px; }
+        }
+        
+        /* Touch device hover states */
+        @media (hover: none) and (pointer: coarse) {
+            .nav-btn:hover { border-color: var(--border); }
+            .nav-btn.active:hover { border-color: var(--ink); }
+            .note-item:hover {
+                border-color: var(--border);
+                box-shadow: none;
+                transform: none;
+            }
+            .btn-primary:hover:not(:disabled) {
+                background: var(--ink);
+                transform: none;
+            }
+            .btn-secondary:hover:not(:disabled) {
+                border-color: var(--border);
+            }
+            .toolbar-btn:hover {
+                background: transparent;
+                color: var(--ink-light);
+            }
+            .theme-toggle:hover {
+                border-color: var(--border);
+                color: var(--ink-light);
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <a href="/" class="logo"><span class="logo-mark"></span>everynote</a>
-            <p class="tagline">Encrypted notes for everyone. Private by default, public by choice.</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <a href="/" class="logo"><span class="logo-mark"></span>everynote</a>
+                    <p class="tagline">Encrypted notes for everyone. Private by default, public by choice.</p>
+                </div>
+                <button id="themeToggle" class="theme-toggle" title="Toggle monochrome mode">
+                    <svg class="icon-color" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <svg class="icon-mono" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"/></svg>
+                </button>
+            </div>
         </header>
 
         <div id="setupNotice" class="setup-notice" style="display: none;">
@@ -738,7 +1212,7 @@
         // CRYPTOGRAPHY MODULE
         // ============================================
         const Crypto = {
-            ITERATIONS: 100000,
+            ITERATIONS: 600000,
             SALT_LENGTH: 16,
             IV_LENGTH: 12,
             
@@ -838,11 +1312,40 @@
             
             async init() {
                 Database.init();
+                this.loadTheme();
                 this.bindEvents();
                 await this.checkUrlForNote();
             },
             
+            loadTheme() {
+                const savedTheme = localStorage.getItem('everynote_theme');
+                if (savedTheme) {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                    // Update theme-color meta for mobile browsers
+                    const themeColor = savedTheme === 'mono' ? '#ffffff' : '#faf8f5';
+                    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor);
+                }
+            },
+            
+            toggleTheme() {
+                const current = document.documentElement.getAttribute('data-theme');
+                const newTheme = current === 'mono' ? '' : 'mono';
+                if (newTheme) {
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('everynote_theme', newTheme);
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.removeItem('everynote_theme');
+                }
+                // Update theme-color meta for mobile browsers
+                const themeColor = newTheme === 'mono' ? '#ffffff' : '#faf8f5';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+            },
+            
             bindEvents() {
+                // Theme toggle
+                document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+                
                 // Navigation
                 document.querySelectorAll('.nav-btn').forEach(btn => {
                     btn.addEventListener('click', () => this.switchView(btn.dataset.view));
