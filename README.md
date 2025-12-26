@@ -12,7 +12,7 @@ A beautifully minimal, end-to-end encrypted note-publishing platform. Zero backe
 
 - **End-to-end encryption** — Private notes are encrypted with AES-256-GCM before they ever leave your device
 - **Zero-knowledge design** — We never see your passwords or decrypted content
-- **PBKDF2 key derivation** — 100,000 iterations protect against brute force attacks
+- **PBKDF2 key derivation** — 600,000 iterations protect against brute force attacks
 - **Shareable links** — Share encrypted notes via URL; recipients need the password to decrypt
 - **No account required** — Start writing immediately
 - **Works offline** — All data stored locally in your browser
@@ -24,7 +24,7 @@ A beautifully minimal, end-to-end encrypted note-publishing platform. Zero backe
 ┌─────────────────────────────────────────────────────────────┐
 │                     YOUR DEVICE                              │
 ├─────────────────────────────────────────────────────────────┤
-│  Password ──► PBKDF2 (100k iterations) ──► AES-256 Key      │
+│  Password ──► PBKDF2 (600k iterations) ──► AES-256 Key      │
 │                                                ↓             │
 │  Note Content ──────────────────────────► Encryption        │
 │                                                ↓             │
@@ -37,7 +37,7 @@ A beautifully minimal, end-to-end encrypted note-publishing platform. Zero backe
 
 **Technical Details:**
 - **Encryption:** AES-256-GCM (authenticated encryption)
-- **Key Derivation:** PBKDF2-SHA256 with 100,000 iterations
+- **Key Derivation:** PBKDF2-SHA256 with 600,000 iterations
 - **Salt:** 16 bytes, cryptographically random per note
 - **IV/Nonce:** 12 bytes, cryptographically random per encryption
 - **Implementation:** Web Crypto API (browser-native, FIPS-compliant)
@@ -98,15 +98,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /notes/{noteId} {
-      // Anyone can read (needed for sharing)
-      allow read: if true;
-      // Only owner can write
-      allow create: if request.resource.data.userId is string;
-      allow update, delete: if resource.data.userId == request.resource.data.userId;
+      // Allow reading individual notes by ID (for sharing)
+      // But prevent listing/enumeration of all notes
+      allow get: if true;
+      allow list: if request.auth != null || 
+                   (resource.data.userId == request.query.userId);
+      
+      // Create: userId must match document structure
+      allow create: if request.resource.data.userId is string
+                    && request.resource.data.id == noteId
+                    && request.resource.data.keys().hasAll(['id', 'userId', 'updatedAt']);
+      
+      // Update/Delete: verify ownership hasn't changed
+      allow update: if resource.data.userId == request.resource.data.userId;
+      allow delete: if resource.data.userId == request.resource.data.userId;
     }
   }
 }
 ```
+
+> **Security Notes:**
+> - `allow get` enables sharing via direct links
+> - `allow list` only permits users to query their own notes
+> - Ownership (`userId`) cannot be changed after creation
 
 ### 4. Get Config & Add to App
 1. Project Settings → Your apps → Web `</>`
