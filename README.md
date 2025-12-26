@@ -63,6 +63,67 @@ A beautifully minimal, end-to-end encrypted note-publishing platform. Zero backe
    - For apex domain: A records pointing to GitHub's IPs
    - For subdomain: CNAME record pointing to `yourusername.github.io`
 
+## 🔗 Sharing Notes
+
+### Without Firebase (Default)
+Notes are encoded directly in the share URL:
+- ✅ Works immediately, no setup needed
+- ✅ Fully serverless  
+- ⚠️ Long notes = long URLs (browser limit ~2000 chars)
+- ⚠️ Notes only persist on your device
+
+### With Firebase (Recommended)
+Notes stored in cloud with short, clean share links:
+- ✅ Short URLs (just the note ID)
+- ✅ Notes persist across devices
+- ✅ No URL length limits
+- ✅ True cross-user sharing
+
+## ☁️ Firebase Setup (10 minutes)
+
+### 1. Create Firebase Project
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click "Create a project" → name it "everynote"
+3. Disable Google Analytics (optional) → Create
+
+### 2. Enable Firestore
+1. Build → Firestore Database → "Create database"
+2. Choose "Start in production mode" → Select region → Enable
+
+### 3. Set Security Rules
+In Firestore → Rules, paste:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /notes/{noteId} {
+      // Anyone can read (needed for sharing)
+      allow read: if true;
+      // Only owner can write
+      allow create: if request.resource.data.userId is string;
+      allow update, delete: if resource.data.userId == request.resource.data.userId;
+    }
+  }
+}
+```
+
+### 4. Get Config & Add to App
+1. Project Settings → Your apps → Web `</>`
+2. Register app → Copy `firebaseConfig`
+3. In `index.html`, replace the config:
+
+```javascript
+const firebaseConfig = {
+    apiKey: "your-actual-key",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project-id",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123:web:abc"
+};
+```
+
 ### Option 3: Local Development
 
 ```bash
