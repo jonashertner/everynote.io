@@ -2741,6 +2741,7 @@
             currentRotationX: 0,
             currentRotationY: 0,
             deviceOrientation: { beta: 0, gamma: 0 },
+            lastTime: 0,
             
             init() {
                 const canvas = document.getElementById('lenticularCanvas');
@@ -2795,61 +2796,49 @@
                     uniform float uIntensity;
                     varying vec2 vUv;
                     
-                    // Lenticular strip pattern
-                    float lenticularStrip(float x, float strips) {
-                        return mod(x * strips, 1.0);
-                    }
-                    
-                    // Parallax offset based on viewing angle
-                    float parallaxOffset(float angle, float strips) {
-                        return sin(angle) * 0.1;
-                    }
-                    
                     void main() {
                         vec2 uv = vUv;
                         
-                        // Number of lenticular strips
-                        float strips = 60.0;
+                        // Number of lenticular strips (vertical lines)
+                        float strips = 80.0;
                         
-                        // Calculate viewing angle from mouse/device orientation
-                        float angle = uMouse.x * 3.14159; // -PI to PI
+                        // Calculate parallax offset based on mouse/device orientation
+                        float parallax = uMouse.x * 0.3; // -0.3 to 0.3
                         
-                        // Create parallax effect
-                        float offset = parallaxOffset(angle, strips);
-                        float strip = lenticularStrip(uv.x + offset, strips);
+                        // Create vertical lenticular strips with parallax
+                        float stripIndex = floor((uv.x + parallax) * strips);
+                        float stripPos = fract((uv.x + parallax) * strips);
                         
-                        // Base color with depth illusion
-                        vec3 color1 = vec3(0.98, 0.97, 0.96); // Paper color
-                        vec3 color2 = vec3(0.95, 0.94, 0.92); // Slightly darker
+                        // Create lens effect - brighter in center of each strip
+                        float lens = 1.0 - abs(stripPos - 0.5) * 2.0; // 0 at edges, 1 at center
+                        lens = pow(lens, 1.5);
                         
-                        // Create depth bands
-                        float depth = sin(uv.y * 10.0 + uTime * 0.5) * 0.5 + 0.5;
-                        vec3 baseColor = mix(color1, color2, depth * 0.3);
+                        // Add depth variation based on strip position
+                        float depth = sin(stripIndex * 0.1 + uTime * 0.3) * 0.5 + 0.5;
                         
-                        // Add lenticular lens effect
-                        float lens = smoothstep(0.0, 0.1, strip) * smoothstep(1.0, 0.9, strip);
-                        lens = pow(lens, 2.0);
+                        // Create color shift based on viewing angle
+                        vec3 baseColor = vec3(0.98, 0.97, 0.96);
                         
-                        // Add subtle rainbow refraction on edges
-                        vec3 refraction = vec3(1.0);
-                        if (lens < 0.5) {
-                            float hue = (uv.x + uTime * 0.1) * 0.1;
-                            refraction = vec3(
-                                0.5 + 0.5 * sin(hue * 6.28 + 0.0),
-                                0.5 + 0.5 * sin(hue * 6.28 + 2.09),
-                                0.5 + 0.5 * sin(hue * 6.28 + 4.18)
-                            ) * 0.1 + 0.9;
-                        }
+                        // Add rainbow refraction effect that shifts with parallax
+                        float hue = (uv.x + parallax * 2.0 + uTime * 0.1) * 0.15;
+                        vec3 rainbow = vec3(
+                            0.5 + 0.5 * sin(hue * 6.28 + 0.0),
+                            0.5 + 0.5 * sin(hue * 6.28 + 2.09),
+                            0.5 + 0.5 * sin(hue * 6.28 + 4.18)
+                        );
                         
-                        // Combine effects
-                        vec3 finalColor = baseColor * refraction;
-                        finalColor = mix(baseColor, finalColor, lens * uIntensity);
+                        // Mix colors based on lens position
+                        vec3 color = mix(baseColor, rainbow * 0.3 + baseColor * 0.7, lens * 0.4);
                         
-                        // Add subtle highlight on lens edges
-                        float highlight = pow(lens, 8.0) * 0.3;
-                        finalColor += highlight;
+                        // Add highlight on lens centers
+                        float highlight = pow(lens, 3.0) * 0.2;
+                        color += highlight;
                         
-                        gl_FragColor = vec4(finalColor, uIntensity * 0.15);
+                        // Add depth variation
+                        color = mix(color, color * 0.95, depth * 0.2);
+                        
+                        // Final color with visible opacity
+                        gl_FragColor = vec4(color, uIntensity * 0.4);
                     }
                 `;
                 
@@ -2936,13 +2925,20 @@
                 this.currentRotationY += (this.targetRotationY - this.currentRotationY) * 0.1;
                 
                 if (this.material && this.material.uniforms) {
-                    this.material.uniforms.uTime.value += 0.016; // ~60fps
+                    // Update time (smooth delta time)
+                    const now = performance.now() / 1000.0;
+                    if (!this.lastTime) this.lastTime = now;
+                    const deltaTime = now - this.lastTime;
+                    this.lastTime = now;
+                    this.material.uniforms.uTime.value += deltaTime;
+                    
+                    // Update mouse position (normalized to -1 to 1)
                     this.material.uniforms.uMouse.value.set(this.mouseX, this.mouseY);
                     
-                    // Fade in/out intensity
+                    // Fade in/out intensity (faster transition)
                     const targetIntensity = this.isActive ? 1.0 : 0.0;
                     const currentIntensity = this.material.uniforms.uIntensity.value;
-                    this.material.uniforms.uIntensity.value += (targetIntensity - currentIntensity) * 0.1;
+                    this.material.uniforms.uIntensity.value += (targetIntensity - currentIntensity) * 0.15;
                 }
                 
                 this.renderer.render(this.scene, this.camera);
