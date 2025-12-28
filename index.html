@@ -14,6 +14,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◉</text></svg>">
     
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; img-src 'self' data: https:; frame-src 'self';">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1743,8 +1749,9 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <div class="container">
+        <header role="banner">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
                     <a href="/" class="logo"><span class="logo-mark"></span>everynote</a>
@@ -1767,11 +1774,12 @@
             <strong>⚠️ Firebase not configured.</strong> Notes stored locally only. See README for setup.
         </div>
 
-        <nav id="mainNav">
-            <button class="nav-btn active" data-view="write">Write</button>
-            <button class="nav-btn" data-view="notes">My Notes</button>
+        <nav id="mainNav" role="navigation" aria-label="Main navigation">
+            <button class="nav-btn active" data-view="write" aria-label="Write new note" aria-current="page">Write</button>
+            <button class="nav-btn" data-view="notes" aria-label="View all notes">My Notes</button>
         </nav>
 
+        <main id="main-content">
         <div id="writeView" class="view active">
             <div id="draftBanner" class="draft-banner" style="display: none;">
                 <span>📝 You have an unsaved draft from earlier</span>
@@ -1780,10 +1788,10 @@
                     <button type="button" class="draft-banner-btn secondary" id="discardDraft">Discard</button>
                 </div>
             </div>
-            <form id="noteForm">
+            <form id="noteForm" role="form" aria-label="Create or edit note">
                 <div class="form-group">
                     <label for="noteTitle">Title</label>
-                    <input type="text" id="noteTitle" class="title-input" placeholder="Untitled note" autocomplete="off">
+                    <input type="text" id="noteTitle" class="title-input" placeholder="Untitled note" autocomplete="off" aria-label="Note title" aria-required="false" maxlength="200">
                 </div>
                 <div id="drawingContainer" class="drawing-container">
                     <div class="drawing-canvas-wrap">
@@ -1840,10 +1848,10 @@
                         </div>
                     </div>
                     <div class="editor-wrap">
-                        <div class="toolbar">
+                        <div class="toolbar" role="toolbar" aria-label="Text formatting">
                             <div class="toolbar-group">
-                                <button type="button" class="toolbar-btn" data-format="bold" data-tooltip="Bold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
-                                <button type="button" class="toolbar-btn" data-format="italic" data-tooltip="Italic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+                                <button type="button" class="toolbar-btn" data-format="bold" data-tooltip="Bold" aria-label="Bold" aria-keyshortcuts="Ctrl+B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+                                <button type="button" class="toolbar-btn" data-format="italic" data-tooltip="Italic" aria-label="Italic" aria-keyshortcuts="Ctrl+I"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
                             </div>
                             <div class="toolbar-divider"></div>
                             <div class="toolbar-group">
@@ -1870,76 +1878,83 @@
                                 <button type="button" class="toolbar-btn" id="drawingToggle" data-tooltip="Sketch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></button>
                             </div>
                         </div>
-                        <textarea id="noteContent" class="content-input" placeholder="Begin writing... Use Markdown for formatting."></textarea>
-                        <div id="previewPane" class="preview-pane"></div>
+                        <textarea id="noteContent" class="content-input" placeholder="Begin writing... Use Markdown for formatting." aria-label="Note content" aria-required="true" inputmode="text"></textarea>
+                        <div id="previewPane" class="preview-pane" role="region" aria-label="Note preview"></div>
                     </div>
                 </div>
                 <div class="toggle-row">
                     <div class="toggle-label">
-                        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         <div><span>Private note</span><div class="toggle-hint">Encrypted with your password</div></div>
                     </div>
-                    <div id="privateToggle" class="toggle active"></div>
+                    <div id="privateToggle" class="toggle active" role="switch" aria-checked="true" aria-label="Toggle private encryption" tabindex="0"></div>
                 </div>
                 <div id="passwordSection" class="password-section visible">
                     <div class="form-group">
                         <label for="notePassword">Encryption Password</label>
                         <div class="password-input-wrap">
-                            <input type="password" id="notePassword" class="password-input" placeholder="Enter a strong password" autocomplete="new-password">
-                            <button type="button" id="passwordToggleBtn" class="password-toggle-btn" title="Show password">
+                            <input type="password" id="notePassword" class="password-input" placeholder="Enter a strong password" autocomplete="new-password" aria-label="Encryption password" aria-describedby="password-strength" aria-required="true" minlength="8" inputmode="text">
+                            <button type="button" id="passwordToggleBtn" class="password-toggle-btn" title="Show password" aria-label="Toggle password visibility" aria-pressed="false">
                                 <svg class="icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 <svg class="icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
-                        <div class="password-strength" id="passwordStrength">
+                        <div class="password-strength" id="passwordStrength" role="status" aria-live="polite">
                             <div class="password-strength-bar"><div class="password-strength-fill" id="strengthFill"></div></div>
                             <span class="password-strength-label" id="strengthLabel">AES-256-GCM encryption</span>
                         </div>
                     </div>
                 </div>
-                <div class="encryption-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <div class="encryption-badge" role="status" aria-label="Encryption status">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     End-to-end encrypted · Zero-knowledge
                 </div>
                 <div class="actions" style="margin-top: 24px;">
-                    <button type="submit" class="btn btn-primary" id="saveBtn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <button type="submit" class="btn btn-primary" id="saveBtn" aria-label="Save note" aria-keyshortcuts="Ctrl+S">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                         <span>Save Note</span>
+                        <span id="saveStatus" class="save-status"></span>
                     </button>
-                    <button type="button" id="clearForm" class="btn btn-secondary">Clear</button>
+                    <button type="button" id="clearForm" class="btn btn-secondary" aria-label="Clear form">Clear</button>
                 </div>
             </form>
         </div>
 
         <div id="notesView" class="view">
-            <div class="search-bar">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search notes...">
-                <button type="button" class="btn btn-secondary" id="exportAllBtn" title="Export all notes">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="search-bar" role="search">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search notes..." aria-label="Search notes" inputmode="search">
+                <button type="button" class="btn btn-secondary" id="exportAllBtn" title="Export all notes" aria-label="Export all notes">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
                 </button>
             </div>
-            <ul id="notesList" class="notes-list"></ul>
-            <div id="emptyState" class="empty-state"><h3>No notes yet</h3><p>Create your first encrypted note</p></div>
-            <div id="loadingState" class="empty-state" style="display: none;"><div class="spinner" style="margin: 0 auto 16px;"></div><p>Loading notes...</p></div>
+            <ul id="notesList" class="notes-list" role="list"></ul>
+            <div id="emptyState" class="empty-state" role="status"><h3>No notes yet</h3><p>Create your first encrypted note</p></div>
+            <div id="loadingState" class="empty-state skeleton-loader" style="display: none;" role="status" aria-live="polite">
+                <div class="skeleton-line" style="width: 60%;"></div>
+                <div class="skeleton-line" style="width: 100%;"></div>
+                <div class="skeleton-line" style="width: 80%;"></div>
+                <p>Loading notes...</p>
+            </div>
         </div>
 
-        <div id="readView" class="view"></div>
+        <div id="readView" class="view" role="article"></div>
+        </main>
 
-        <footer>
-            <p>Built with <span class="heart">♥</span> · End-to-end encrypted</p>
+        <footer role="contentinfo">
+            <p>Built with <span class="heart" aria-label="love">♥</span> · End-to-end encrypted</p>
             <p style="margin-top: 8px; opacity: 0.7;">Your data never leaves your device unencrypted</p>
         </footer>
     </div>
 
-    <div id="shareModal" class="modal-overlay">
+    <div id="shareModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
         <div class="modal">
             <div class="modal-header">
-                <h3>Share Note</h3>
-                <button class="modal-close" id="closeShareModal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                <h3 id="modal-title">Share Note</h3>
+                <button class="modal-close" id="closeShareModal" aria-label="Close dialog"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div class="modal-body">
                 <div class="share-option">
@@ -1957,9 +1972,12 @@
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
     
-    <div id="shortcutsHint" class="shortcuts-hint">
+    <div id="sr-announcements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    
+    <div id="shortcutsHint" class="shortcuts-hint" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" aria-hidden="true">
+        <h3 id="shortcuts-title" class="sr-only">Keyboard Shortcuts</h3>
         <ul>
             <li><span>Save note</span> <span><kbd>Ctrl</kbd>+<kbd>S</kbd></span></li>
             <li><span>New note</span> <span><kbd>Ctrl</kbd>+<kbd>N</kbd></span></li>
@@ -1973,6 +1991,38 @@
     </div>
 
     <script>
+        // ============================================
+        // CONSTANTS
+        // ============================================
+        const CONSTANTS = {
+            STORAGE_KEYS: {
+                NOTES: 'everynote_notes',
+                USER_ID: 'everynote_user_id',
+                THEME: 'everynote_theme',
+                DRAFT: 'everynote_draft',
+                SYNC_QUEUE: 'everynote_sync_queue',
+                TRASH: 'everynote_trash',
+                VERSIONS: 'everynote_versions'
+            },
+            LIMITS: {
+                MAX_TITLE_LENGTH: 200,
+                MAX_CONTENT_LENGTH: 1000000,
+                MIN_PASSWORD_LENGTH: 8,
+                TRASH_RETENTION_DAYS: 7,
+                MAX_VERSIONS: 10
+            },
+            CRYPTO: {
+                ITERATIONS: 600000,
+                SALT_LENGTH: 16,
+                IV_LENGTH: 12,
+                ID_LENGTH: 16
+            },
+            RATE_LIMIT: {
+                MAX_ATTEMPTS: 5,
+                LOCKOUT_MS: 30000
+            }
+        };
+
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyC_CXy_JzqiXGF7eaCK33BGCTDbclpcABI",
@@ -1981,6 +2031,119 @@
             storageBucket: "everynote-8889a.firebasestorage.app",
             messagingSenderId: "1082657437406",
             appId: "1:1082657437406:web:ceef295800767abf15b44f"
+        };
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        const Utils = {
+            /**
+             * Sanitize HTML input to prevent XSS
+             * @param {string} text - Text to sanitize
+             * @returns {string} Sanitized text
+             */
+            sanitizeInput(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            /**
+             * Escape HTML entities
+             * @param {string} text - Text to escape
+             * @returns {string} Escaped HTML
+             */
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            /**
+             * Get user-friendly error message
+             * @param {Error} error - Error object
+             * @returns {string} User-friendly message
+             */
+            getErrorMessage(error) {
+                const msg = error.message || String(error);
+                if (msg.includes('QuotaExceededError') || msg.includes('quota')) {
+                    return 'Storage full. Please export some notes or clear your browser data.';
+                }
+                if (msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('network')) {
+                    return 'Network error. Your note is saved locally and will sync when online.';
+                }
+                if (msg.includes('Decryption failed') || msg.includes('decrypt')) {
+                    return 'Incorrect password. Please try again.';
+                }
+                return 'An error occurred. Please try again.';
+            },
+
+            /**
+             * Announce to screen readers
+             * @param {string} message - Message to announce
+             */
+            announceToScreenReader(message) {
+                const sr = document.getElementById('sr-announcements');
+                if (sr) {
+                    sr.textContent = message;
+                    setTimeout(() => sr.textContent = '', 1000);
+                }
+            },
+
+            /**
+             * Focus first focusable element in container
+             * @param {HTMLElement} container - Container element
+             */
+            focusFirstElement(container) {
+                const focusable = container.querySelector(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusable) focusable.focus();
+            },
+
+            /**
+             * Trap focus within modal
+             * @param {HTMLElement} modal - Modal element
+             */
+            trapFocus(modal) {
+                const focusableElements = modal.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusableElements.length === 0) return;
+                
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                
+                const handleKeyDown = (e) => {
+                    if (e.key === 'Tab') {
+                        if (e.shiftKey && document.activeElement === firstElement) {
+                            e.preventDefault();
+                            lastElement.focus();
+                        } else if (!e.shiftKey && document.activeElement === lastElement) {
+                            e.preventDefault();
+                            firstElement.focus();
+                        }
+                    }
+                };
+                
+                modal.addEventListener('keydown', handleKeyDown);
+                return () => modal.removeEventListener('keydown', handleKeyDown);
+            },
+
+            /**
+             * Haptic feedback for mobile devices
+             * @param {string} type - Type of feedback: 'light', 'medium', 'heavy'
+             */
+            hapticFeedback(type = 'light') {
+                if ('vibrate' in navigator) {
+                    const patterns = {
+                        light: 10,
+                        medium: 20,
+                        heavy: 30
+                    };
+                    navigator.vibrate(patterns[type] || 10);
+                }
+            }
         };
 
         // ============================================
@@ -2062,28 +2225,60 @@
                 const notes = this.getAllLocal();
                 const idx = notes.findIndex(n => n.id === note.id);
                 if (idx >= 0) notes[idx] = note; else notes.unshift(note);
-                localStorage.setItem('everynote_notes', JSON.stringify(notes));
+                try {
+                    localStorage.setItem(CONSTANTS.STORAGE_KEYS.NOTES, JSON.stringify(notes));
+                } catch (e) {
+                    console.error('Failed to save to local storage:', e);
+                    UI.showToast(Utils.getErrorMessage(e), true);
+                }
             },
             
             getFromLocal(id) { return this.getAllLocal().find(n => n.id === id); },
             
             getAllLocal() {
-                try { return JSON.parse(localStorage.getItem('everynote_notes') || '[]'); }
+                try { return JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEYS.NOTES) || '[]'); }
                 catch { return []; }
             },
             
             deleteFromLocal(id) {
                 const notes = this.getAllLocal().filter(n => n.id !== id);
-                localStorage.setItem('everynote_notes', JSON.stringify(notes));
+                try {
+                    localStorage.setItem(CONSTANTS.STORAGE_KEYS.NOTES, JSON.stringify(notes));
+                } catch (e) {
+                    console.error('Failed to delete from local storage:', e);
+                }
             },
             
             getUserId() {
-                let id = localStorage.getItem('everynote_user_id');
+                let id = localStorage.getItem(CONSTANTS.STORAGE_KEYS.USER_ID);
                 if (!id) {
                     id = 'user_' + Crypto.generateId();
-                    localStorage.setItem('everynote_user_id', id);
+                    localStorage.setItem(CONSTANTS.STORAGE_KEYS.USER_ID, id);
                 }
                 return id;
+            },
+
+            /**
+             * Check storage quota
+             * @returns {Promise<Object|null>} Storage info or null if not supported
+             */
+            async checkStorageQuota() {
+                if ('storage' in navigator && 'estimate' in navigator.storage) {
+                    try {
+                        const estimate = await navigator.storage.estimate();
+                        const used = estimate.usage || 0;
+                        const quota = estimate.quota || 0;
+                        const percentage = quota > 0 ? (used / quota) * 100 : 0;
+                        
+                        if (percentage > 90) {
+                            UI.showToast('Storage nearly full. Consider exporting old notes.', true);
+                        }
+                        return { used, quota, percentage };
+                    } catch (e) {
+                        console.error('Failed to check storage quota:', e);
+                    }
+                }
+                return null;
             }
         };
 
@@ -2091,16 +2286,18 @@
         // CRYPTOGRAPHY MODULE
         // ============================================
         const Crypto = {
-            ITERATIONS: 600000,
-            SALT_LENGTH: 16,
-            IV_LENGTH: 12,
-            
+            /**
+             * Generate encryption key from password
+             * @param {string} password - Password
+             * @param {Uint8Array} salt - Salt
+             * @returns {Promise<CryptoKey>} Encryption key
+             */
             async generateKey(password, salt) {
                 const keyMaterial = await crypto.subtle.importKey(
                     'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
                 );
                 return crypto.subtle.deriveKey(
-                    { name: 'PBKDF2', salt, iterations: this.ITERATIONS, hash: 'SHA-256' },
+                    { name: 'PBKDF2', salt, iterations: CONSTANTS.CRYPTO.ITERATIONS, hash: 'SHA-256' },
                     keyMaterial,
                     { name: 'AES-GCM', length: 256 },
                     false,
@@ -2108,9 +2305,15 @@
                 );
             },
             
+            /**
+             * Encrypt plaintext with password
+             * @param {string} plaintext - Text to encrypt
+             * @param {string} password - Encryption password
+             * @returns {Promise<string>} Base64-encoded ciphertext
+             */
             async encrypt(plaintext, password) {
-                const salt = crypto.getRandomValues(new Uint8Array(this.SALT_LENGTH));
-                const iv = crypto.getRandomValues(new Uint8Array(this.IV_LENGTH));
+                const salt = crypto.getRandomValues(new Uint8Array(CONSTANTS.CRYPTO.SALT_LENGTH));
+                const iv = crypto.getRandomValues(new Uint8Array(CONSTANTS.CRYPTO.IV_LENGTH));
                 const key = await this.generateKey(password, salt);
                 const encrypted = await crypto.subtle.encrypt(
                     { name: 'AES-GCM', iv },
@@ -2124,20 +2327,38 @@
                 return btoa(String.fromCharCode(...combined));
             },
             
+            /**
+             * Decrypt ciphertext with password (with timing attack mitigation)
+             * @param {string} encryptedBase64 - Base64-encoded ciphertext
+             * @param {string} password - Decryption password
+             * @returns {Promise<string>} Decrypted plaintext
+             * @throws {Error} If decryption fails
+             */
             async decrypt(encryptedBase64, password) {
+                let decrypted = null;
                 try {
                     const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
-                    const salt = combined.slice(0, this.SALT_LENGTH);
-                    const iv = combined.slice(this.SALT_LENGTH, this.SALT_LENGTH + this.IV_LENGTH);
-                    const ciphertext = combined.slice(this.SALT_LENGTH + this.IV_LENGTH);
+                    const salt = combined.slice(0, CONSTANTS.CRYPTO.SALT_LENGTH);
+                    const iv = combined.slice(CONSTANTS.CRYPTO.SALT_LENGTH, CONSTANTS.CRYPTO.SALT_LENGTH + CONSTANTS.CRYPTO.IV_LENGTH);
+                    const ciphertext = combined.slice(CONSTANTS.CRYPTO.SALT_LENGTH + CONSTANTS.CRYPTO.IV_LENGTH);
                     const key = await this.generateKey(password, salt);
-                    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+                    decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
                     return new TextDecoder().decode(decrypted);
-                } catch { throw new Error('Decryption failed'); }
+                } catch {
+                    // Perform dummy operation to prevent timing attacks
+                    try {
+                        await crypto.subtle.importKey('raw', new Uint8Array(32), 'AES-GCM', false, []);
+                    } catch {}
+                    throw new Error('Decryption failed');
+                }
             },
             
+            /**
+             * Generate secure random ID
+             * @returns {string} Hexadecimal ID
+             */
             generateId() {
-                return [...crypto.getRandomValues(new Uint8Array(12))]
+                return [...crypto.getRandomValues(new Uint8Array(CONSTANTS.CRYPTO.ID_LENGTH))]
                     .map(b => b.toString(16).padStart(2, '0')).join('');
             }
         };
@@ -2147,8 +2368,8 @@
         // ============================================
         const RateLimiter = {
             attempts: new Map(),
-            MAX_ATTEMPTS: 5,
-            LOCKOUT_MS: 30000,
+            MAX_ATTEMPTS: CONSTANTS.RATE_LIMIT.MAX_ATTEMPTS,
+            LOCKOUT_MS: CONSTANTS.RATE_LIMIT.LOCKOUT_MS,
             
             canAttempt(noteId) {
                 const record = this.attempts.get(noteId);
@@ -2175,6 +2396,37 @@
                     record.lockUntil = Date.now() + this.LOCKOUT_MS;
                 }
                 this.attempts.set(noteId, record);
+            }
+        };
+
+        // ============================================
+        // INPUT VALIDATION
+        // ============================================
+        const Validator = {
+            /**
+             * Validate note data
+             * @param {Object} note - Note object
+             * @returns {{valid: boolean, errors: string[]}} Validation result
+             */
+            validateNote(note) {
+                const errors = [];
+                
+                if (note.title && note.title.length > CONSTANTS.LIMITS.MAX_TITLE_LENGTH) {
+                    errors.push(`Title must be ${CONSTANTS.LIMITS.MAX_TITLE_LENGTH} characters or less`);
+                }
+                
+                if (note.content && note.content.length > CONSTANTS.LIMITS.MAX_CONTENT_LENGTH) {
+                    errors.push(`Note content is too large (max ${CONSTANTS.LIMITS.MAX_CONTENT_LENGTH} characters)`);
+                }
+                
+                if (note.password && note.password.length < CONSTANTS.LIMITS.MIN_PASSWORD_LENGTH) {
+                    errors.push(`Password must be at least ${CONSTANTS.LIMITS.MIN_PASSWORD_LENGTH} characters`);
+                }
+                
+                return {
+                    valid: errors.length === 0,
+                    errors
+                };
             }
         };
 
@@ -2233,8 +2485,10 @@
         // ============================================
         // AUTO-SAVE DRAFTS
         // ============================================
+        // DRAFT MANAGER
+        // ============================================
         const DraftManager = {
-            STORAGE_KEY: 'everynote_draft',
+            STORAGE_KEY: CONSTANTS.STORAGE_KEYS.DRAFT,
             saveTimeout: null,
             
             save() {
@@ -2274,7 +2528,7 @@
         // SYNC QUEUE (Offline-First)
         // ============================================
         const SyncQueue = {
-            STORAGE_KEY: 'everynote_sync_queue',
+            STORAGE_KEY: CONSTANTS.STORAGE_KEYS.SYNC_QUEUE,
             
             getQueue() {
                 try {
@@ -2327,8 +2581,8 @@
         // DELETED NOTES RECOVERY
         // ============================================
         const TrashBin = {
-            STORAGE_KEY: 'everynote_trash',
-            RETENTION_MS: 86400000 * 7, // 7 days
+            STORAGE_KEY: CONSTANTS.STORAGE_KEYS.TRASH,
+            RETENTION_MS: 86400000 * CONSTANTS.LIMITS.TRASH_RETENTION_DAYS,
             
             getTrash() {
                 try {
@@ -2367,10 +2621,121 @@
         };
 
         // ============================================
-        // MARKDOWN PARSER
+        // EDITOR HISTORY (Undo/Redo)
+        // ============================================
+        const EditorHistory = {
+            history: [],
+            currentIndex: -1,
+            maxSize: 50,
+            
+            /**
+             * Save state to history
+             * @param {string} content - Editor content
+             */
+            saveState(content) {
+                // Remove any states after current index
+                this.history = this.history.slice(0, this.currentIndex + 1);
+                
+                // Add new state
+                this.history.push(content);
+                if (this.history.length > this.maxSize) {
+                    this.history.shift();
+                } else {
+                    this.currentIndex++;
+                }
+            },
+            
+            /**
+             * Undo last action
+             * @returns {string|null} Previous state or null
+             */
+            undo() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    return this.history[this.currentIndex];
+                }
+                return null;
+            },
+            
+            /**
+             * Redo last undone action
+             * @returns {string|null} Next state or null
+             */
+            redo() {
+                if (this.currentIndex < this.history.length - 1) {
+                    this.currentIndex++;
+                    return this.history[this.currentIndex];
+                }
+                return null;
+            },
+            
+            /**
+             * Check if undo is available
+             * @returns {boolean}
+             */
+            canUndo() {
+                return this.currentIndex > 0;
+            },
+            
+            /**
+             * Check if redo is available
+             * @returns {boolean}
+             */
+            canRedo() {
+                return this.currentIndex < this.history.length - 1;
+            },
+            
+            /**
+             * Clear history
+             */
+            clear() {
+                this.history = [];
+                this.currentIndex = -1;
+            }
+        };
+
+        // ============================================
+        // MARKDOWN PARSER (with caching)
         // ============================================
         const Markdown = {
+            cache: new Map(),
+            
+            /**
+             * Simple hash function for cache key
+             * @param {string} text - Text to hash
+             * @returns {string} Hash string
+             */
+            hash(text) {
+                let hash = 0;
+                for (let i = 0; i < text.length; i++) {
+                    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+                    hash = hash & hash;
+                }
+                return hash.toString();
+            },
+            
+            /**
+             * Parse markdown to HTML (with caching)
+             * @param {string} text - Markdown text
+             * @returns {string} HTML
+             */
             parse(text) {
+                if (!text) return '';
+                const hash = this.hash(text);
+                if (this.cache.has(hash)) {
+                    return this.cache.get(hash);
+                }
+                const parsed = this.parseInternal(text);
+                // Limit cache size
+                if (this.cache.size > 50) {
+                    const firstKey = this.cache.keys().next().value;
+                    this.cache.delete(firstKey);
+                }
+                this.cache.set(hash, parsed);
+                return parsed;
+            },
+            
+            parseInternal(text) {
                 if (!text) return '';
                 let html = this.escapeHtml(text);
                 html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
@@ -2682,15 +3047,247 @@
             editingNoteId: null,
             allNotes: [],
             isFullscreen: false,
+            saveStatus: 'saved', // 'saving', 'saved', 'error'
             
             async init() {
+                // Global error handlers
+                window.addEventListener('error', (event) => {
+                    console.error('Global error:', event.error);
+                    this.showToast(Utils.getErrorMessage(event.error), true);
+                });
+                
+                window.addEventListener('unhandledrejection', (event) => {
+                    console.error('Unhandled promise rejection:', event.reason);
+                    this.showToast(Utils.getErrorMessage(event.reason), true);
+                });
+                
+                // Check storage quota periodically
+                Database.checkStorageQuota();
+                setInterval(() => Database.checkStorageQuota(), 300000); // Every 5 minutes
+                
                 Database.init();
                 Drawing.init();
                 SyncQueue.init();
                 this.loadTheme();
                 this.bindEvents();
                 this.checkDraft();
+                this.setupEditorFeatures();
                 await this.checkUrlForNote();
+                
+                // Service Worker registration
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('/sw.js')
+                            .then((reg) => console.log('Service Worker registered'))
+                            .catch((err) => console.log('Service Worker registration failed:', err));
+                    });
+                }
+            },
+            
+            /**
+             * Setup editor features (undo/redo, word count, drag-drop)
+             */
+            setupEditorFeatures() {
+                const editor = document.getElementById('noteContent');
+                if (!editor) return;
+                
+                // Initialize history with empty state
+                EditorHistory.saveState(editor.value);
+                
+                // Save state on input (debounced)
+                let saveTimeout;
+                editor.addEventListener('input', () => {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => {
+                        EditorHistory.saveState(editor.value);
+                        this.updateWordCount();
+                    }, 500);
+                });
+                
+                // Undo/Redo keyboard shortcuts
+                editor.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+                        e.preventDefault();
+                        const state = EditorHistory.undo();
+                        if (state !== null) {
+                            editor.value = state;
+                            this.updateWordCount();
+                            Utils.announceToScreenReader('Undone');
+                        }
+                    } else if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.key === 'y') && e.key !== 'y') {
+                        // Ctrl+Shift+Z or Ctrl+Y for redo
+                        if (e.key === 'z' || e.key === 'y') {
+                            e.preventDefault();
+                            const state = EditorHistory.redo();
+                            if (state !== null) {
+                                editor.value = state;
+                                this.updateWordCount();
+                                Utils.announceToScreenReader('Redone');
+                            }
+                        }
+                    }
+                });
+                
+                // Drag and drop for images
+                editor.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    editor.classList.add('drag-over');
+                });
+                
+                editor.addEventListener('dragleave', () => {
+                    editor.classList.remove('drag-over');
+                });
+                
+                editor.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    editor.classList.remove('drag-over');
+                    
+                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                    for (const file of files) {
+                        try {
+                            const dataUrl = await this.fileToDataUrl(file);
+                            const markdown = `\n\n![${file.name}](${dataUrl})\n\n`;
+                            this.insertAtCursor(editor, markdown);
+                            Utils.hapticFeedback('light');
+                        } catch (err) {
+                            this.showToast('Failed to load image', true);
+                        }
+                    }
+                });
+            },
+            
+            /**
+             * Convert file to data URL
+             * @param {File} file - File object
+             * @returns {Promise<string>} Data URL
+             */
+            fileToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            },
+            
+            /**
+             * Insert text at cursor position
+             * @param {HTMLTextAreaElement} textarea - Textarea element
+             * @param {string} text - Text to insert
+             */
+            insertAtCursor(textarea, text) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                textarea.focus();
+                EditorHistory.saveState(textarea.value);
+                this.updateWordCount();
+            },
+            
+            /**
+             * Update word count and reading time
+             */
+            updateWordCount() {
+                const content = document.getElementById('noteContent')?.value || '';
+                const words = content.trim().split(/\s+/).filter(w => w.length > 0);
+                const wordCount = words.length;
+                const readingTime = Math.ceil(wordCount / 200); // 200 words per minute
+                
+                let wordCountEl = document.getElementById('wordCount');
+                if (!wordCountEl) {
+                    wordCountEl = document.createElement('div');
+                    wordCountEl.id = 'wordCount';
+                    wordCountEl.className = 'word-count';
+                    wordCountEl.style.cssText = 'font-size: 12px; color: var(--ink-light); margin-top: 8px;';
+                    const editorWrap = document.querySelector('.editor-wrap');
+                    if (editorWrap) {
+                        editorWrap.appendChild(wordCountEl);
+                    }
+                }
+                
+                if (wordCount > 0) {
+                    wordCountEl.textContent = `${wordCount} words${readingTime > 0 ? ` · ${readingTime} min read` : ''}`;
+                    wordCountEl.style.display = 'block';
+                } else {
+                    wordCountEl.style.display = 'none';
+                }
+            },
+            
+            /**
+             * Show confirmation dialog
+             * @param {string} message - Confirmation message
+             * @param {string} confirmText - Confirm button text
+             * @param {string} cancelText - Cancel button text
+             * @returns {Promise<boolean>} True if confirmed
+             */
+            async confirmAction(message, confirmText = 'Confirm', cancelText = 'Cancel') {
+                return new Promise((resolve) => {
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay';
+                    modal.setAttribute('role', 'dialog');
+                    modal.setAttribute('aria-modal', 'true');
+                    modal.setAttribute('aria-labelledby', 'confirm-title');
+                    modal.style.display = 'flex';
+                    
+                    modal.innerHTML = `
+                        <div class="modal">
+                            <div class="modal-header">
+                                <h3 id="confirm-title">Confirm</h3>
+                            </div>
+                            <div class="modal-body">
+                                <p>${Utils.escapeHtml(message)}</p>
+                            </div>
+                            <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                                <button class="btn btn-secondary" data-action="cancel">${Utils.escapeHtml(cancelText)}</button>
+                                <button class="btn btn-primary" data-action="confirm">${Utils.escapeHtml(confirmText)}</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const cleanup = () => {
+                        document.body.removeChild(modal);
+                    };
+                    
+                    modal.querySelector('[data-action="confirm"]').onclick = () => {
+                        cleanup();
+                        resolve(true);
+                    };
+                    modal.querySelector('[data-action="cancel"]').onclick = () => {
+                        cleanup();
+                        resolve(false);
+                    };
+                    
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            cleanup();
+                            resolve(false);
+                        }
+                    });
+                    
+                    document.body.appendChild(modal);
+                    Utils.focusFirstElement(modal);
+                    Utils.trapFocus(modal);
+                });
+            },
+            
+            /**
+             * Update save status indicator
+             * @param {string} status - Status: 'saving', 'saved', 'error'
+             */
+            updateSaveStatus(status) {
+                this.saveStatus = status;
+                const indicator = document.getElementById('saveStatus');
+                if (!indicator) return;
+                
+                const statusText = {
+                    saving: 'Saving...',
+                    saved: 'Saved',
+                    error: 'Save failed'
+                };
+                
+                indicator.textContent = statusText[status] || '';
+                indicator.className = `save-status save-status-${status}`;
             },
             
             checkDraft() {
@@ -2803,10 +3400,13 @@
                         if (!input) return;
                         const isPassword = input.type === 'password';
                         input.type = isPassword ? 'text' : 'password';
+                        input.autocomplete = isPassword ? 'off' : 'new-password';
+                        passwordToggleBtn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
                         const iconShow = passwordToggleBtn.querySelector('.icon-show');
                         const iconHide = passwordToggleBtn.querySelector('.icon-hide');
                         if (iconShow) iconShow.style.display = isPassword ? 'none' : 'block';
                         if (iconHide) iconHide.style.display = isPassword ? 'block' : 'none';
+                        Utils.hapticFeedback('light');
                     });
                 }
                 
@@ -3043,12 +3643,28 @@
                 const isPrivate = document.getElementById('privateToggle').classList.contains('active');
                 const password = document.getElementById('notePassword').value;
                 
-                if (!content) return this.showToast('Please write something first');
-                if (isPrivate && !password) return this.showToast('Please enter an encryption password');
+                if (!content) {
+                    this.showToast('Please write something first', true);
+                    return;
+                }
+                
+                if (isPrivate && !password) {
+                    this.showToast('Please enter an encryption password', true);
+                    return;
+                }
+                
+                // Validate input
+                const validation = Validator.validateNote({ title, content, password: isPrivate ? password : undefined });
+                if (!validation.valid) {
+                    this.showToast(validation.errors[0], true);
+                    return;
+                }
                 
                 const btn = document.getElementById('saveBtn');
                 btn.disabled = true;
                 btn.querySelector('span').textContent = 'Saving...';
+                this.updateSaveStatus('saving');
+                Utils.hapticFeedback('light');
                 
                 try {
                     let noteData = { title, content };
@@ -3071,15 +3687,22 @@
                     
                     await Database.saveNote(note);
                     DraftManager.clear();
+                    EditorHistory.clear();
+                    this.updateSaveStatus('saved');
                     this.resetForm();
+                    Utils.announceToScreenReader(isPrivate ? 'Note encrypted and saved' : 'Note saved');
                     this.showToast(isPrivate ? 'Note encrypted and saved!' : 'Note saved!');
                     this.switchView('notes');
                 } catch (e) {
-                    this.showToast('Failed to save', true);
-                    console.error(e);
+                    this.updateSaveStatus('error');
+                    const errorMsg = Utils.getErrorMessage(e);
+                    this.showToast(errorMsg, true);
+                    console.error('Save error:', e);
+                    Utils.announceToScreenReader('Failed to save note');
                 } finally {
                     btn.disabled = false;
                     btn.querySelector('span').textContent = 'Save Note';
+                    setTimeout(() => this.updateSaveStatus('saved'), 2000);
                 }
             },
             
@@ -3303,10 +3926,19 @@
                     });
                     
                     document.getElementById('deleteNote')?.addEventListener('click', async () => {
+                        const confirmed = await this.confirmAction(
+                            'Are you sure you want to delete this note?',
+                            'Delete',
+                            'Cancel'
+                        );
+                        
+                        if (!confirmed) return;
+                        
                         // Save to trash before deleting
                         TrashBin.add(rec);
                         await Database.deleteNote(rec.id);
                         this.switchView('notes');
+                        Utils.hapticFeedback('medium');
                         
                         // Show toast with undo option
                         this.showToast('Note deleted', false, {

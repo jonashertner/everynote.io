@@ -1,0 +1,36 @@
+{
+    "name": "everynote",
+    "short_name": "everynote",
+    "description": "Encrypted notes for everyone. Private by default, public by choice.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#faf8f5",
+    "theme_color": "#faf8f5",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◉</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◉</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["productivity", "utilities"],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "New Note",
+            "short_name": "New",
+            "description": "Create a new encrypted note",
+            "url": "/?action=new",
+            "icons": []
+        }
+    ]
+}
+
