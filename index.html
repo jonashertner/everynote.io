@@ -23,9 +23,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <!-- Three.js for Lenticular Effect -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-    
     <style>
         :root {
             --paper: #faf8f5;
@@ -138,40 +135,6 @@
         body.fullscreen .theme-toggle .icon-expand { display: none; }
         body.fullscreen .theme-toggle .icon-collapse { display: block; }
         
-        /* Lenticular effect toggle */
-        .theme-toggle.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-        .theme-toggle.active:hover {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
-        }
-        
-        /* Lenticular canvas overlay */
-        #lenticularCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none !important;
-            z-index: 5;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            visibility: hidden;
-        }
-        #lenticularCanvas.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        /* Never allow pointer events on canvas - it's purely visual */
-        body.lenticular-active #lenticularCanvas,
-        #lenticularCanvas {
-            pointer-events: none !important;
-        }
-        
         /* Fullscreen mode */
         body.fullscreen header { display: none; }
         body.fullscreen nav { display: none; }
@@ -185,9 +148,6 @@
             overflow-y: auto;
             padding: 24px;
             animation: fadeIn 0.2s ease;
-        }
-        body.fullscreen #lenticularCanvas {
-            z-index: 5;
         }
         body.fullscreen #writeView.active {
             display: flex;
@@ -1779,11 +1739,6 @@
                 border-color: var(--border);
                 color: var(--ink-light);
             }
-            
-            /* Lenticular canvas - mobile optimization */
-            #lenticularCanvas {
-                touch-action: none;
-            }
         }
     </style>
 </head>
@@ -1804,14 +1759,9 @@
                         <svg class="icon-color" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                         <svg class="icon-mono" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"/></svg>
                     </button>
-                    <button id="lenticularToggle" class="theme-toggle" title="Lenticular print effect" style="pointer-events: auto; z-index: 1000; position: relative;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18M9 3v18M15 3v18"/><path d="M6 6h3v3H6zM15 6h3v3h-3zM6 15h3v3H6zM15 15h3v3h-3z"/></svg>
-                    </button>
                 </div>
             </div>
         </header>
-        
-        <canvas id="lenticularCanvas"></canvas>
 
         <div id="setupNotice" class="setup-notice" style="display: none;">
             <strong>⚠️ Firebase not configured.</strong> Notes stored locally only. See README for setup.
@@ -2727,284 +2677,6 @@
         // ============================================
         // UI MODULE
         // ============================================
-        const Lenticular = {
-            scene: null,
-            camera: null,
-            renderer: null,
-            plane: null,
-            material: null,
-            isActive: false,
-            mouseX: 0,
-            mouseY: 0,
-            targetRotationX: 0,
-            targetRotationY: 0,
-            currentRotationX: 0,
-            currentRotationY: 0,
-            deviceOrientation: { beta: 0, gamma: 0 },
-            lastTime: 0,
-            
-            init() {
-                const canvas = document.getElementById('lenticularCanvas');
-                if (!canvas) {
-                    console.error('Lenticular canvas element not found');
-                    return false;
-                }
-                
-                // Check if Three.js is loaded
-                if (typeof THREE === 'undefined') {
-                    console.error('Three.js not loaded');
-                    return false;
-                }
-                
-                // Prevent double initialization
-                if (this.scene && this.renderer) {
-                    return true;
-                }
-                
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-                
-                // Scene
-                this.scene = new THREE.Scene();
-                
-                // Camera
-                this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-                this.camera.position.z = 2;
-                
-                // Renderer
-                this.renderer = new THREE.WebGLRenderer({ 
-                    canvas: canvas,
-                    alpha: true,
-                    antialias: true
-                });
-                this.renderer.setSize(width, height);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                
-                // Create lenticular shader material
-                const vertexShader = `
-                    varying vec2 vUv;
-                    void main() {
-                        vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `;
-                
-                const fragmentShader = `
-                    uniform float uTime;
-                    uniform vec2 uMouse;
-                    uniform vec2 uResolution;
-                    uniform float uIntensity;
-                    varying vec2 vUv;
-                    
-                    void main() {
-                        vec2 uv = vUv;
-                        
-                        // Number of lenticular strips (vertical lines)
-                        float strips = 80.0;
-                        
-                        // Calculate parallax offset based on mouse/device orientation
-                        float parallax = uMouse.x * 0.3; // -0.3 to 0.3
-                        
-                        // Create vertical lenticular strips with parallax
-                        float stripIndex = floor((uv.x + parallax) * strips);
-                        float stripPos = fract((uv.x + parallax) * strips);
-                        
-                        // Create lens effect - brighter in center of each strip
-                        float lens = 1.0 - abs(stripPos - 0.5) * 2.0; // 0 at edges, 1 at center
-                        lens = pow(lens, 1.5);
-                        
-                        // Add depth variation based on strip position
-                        float depth = sin(stripIndex * 0.1 + uTime * 0.3) * 0.5 + 0.5;
-                        
-                        // Create color shift based on viewing angle
-                        vec3 baseColor = vec3(0.98, 0.97, 0.96);
-                        
-                        // Add rainbow refraction effect that shifts with parallax
-                        float hue = (uv.x + parallax * 2.0 + uTime * 0.1) * 0.15;
-                        vec3 rainbow = vec3(
-                            0.5 + 0.5 * sin(hue * 6.28 + 0.0),
-                            0.5 + 0.5 * sin(hue * 6.28 + 2.09),
-                            0.5 + 0.5 * sin(hue * 6.28 + 4.18)
-                        );
-                        
-                        // Mix colors based on lens position
-                        vec3 color = mix(baseColor, rainbow * 0.3 + baseColor * 0.7, lens * 0.4);
-                        
-                        // Add highlight on lens centers
-                        float highlight = pow(lens, 3.0) * 0.2;
-                        color += highlight;
-                        
-                        // Add depth variation
-                        color = mix(color, color * 0.95, depth * 0.2);
-                        
-                        // Final color with visible opacity
-                        gl_FragColor = vec4(color, uIntensity * 0.4);
-                    }
-                `;
-                
-                this.material = new THREE.ShaderMaterial({
-                    vertexShader,
-                    fragmentShader,
-                    uniforms: {
-                        uTime: { value: 0 },
-                        uMouse: { value: new THREE.Vector2(0, 0) },
-                        uResolution: { value: new THREE.Vector2(width, height) },
-                        uIntensity: { value: 0 }
-                    },
-                    transparent: true,
-                    side: THREE.DoubleSide
-                });
-                
-                // Create plane geometry covering the screen
-                const geometry = new THREE.PlaneGeometry(2, 2);
-                this.plane = new THREE.Mesh(geometry, this.material);
-                this.scene.add(this.plane);
-                
-                // Event listeners
-                this.setupEventListeners();
-                
-                // Start animation loop
-                this.animate();
-                
-                return true;
-            },
-            
-            setupEventListeners() {
-                // Mouse movement
-                document.addEventListener('mousemove', (e) => {
-                    if (!this.isActive) return;
-                    this.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-                    this.mouseY = (e.clientY / window.innerHeight) * 2 - 1;
-                    this.targetRotationX = this.mouseY * 0.1;
-                    this.targetRotationY = this.mouseX * 0.1;
-                });
-                
-                // Device orientation (for mobile)
-                if (window.DeviceOrientationEvent) {
-                    window.addEventListener('deviceorientation', (e) => {
-                        if (!this.isActive) return;
-                        // Normalize orientation values
-                        const beta = e.beta ? e.beta / 90 : 0; // -1 to 1
-                        const gamma = e.gamma ? e.gamma / 90 : 0; // -1 to 1
-                        this.deviceOrientation.beta = beta;
-                        this.deviceOrientation.gamma = gamma;
-                        this.mouseX = gamma;
-                        this.mouseY = beta;
-                        this.targetRotationX = beta * 0.1;
-                        this.targetRotationY = gamma * 0.1;
-                    });
-                }
-                
-                // Window resize
-                window.addEventListener('resize', () => {
-                    if (!this.renderer) return;
-                    const width = window.innerWidth;
-                    const height = window.innerHeight;
-                    this.camera.aspect = width / height;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(width, height);
-                    if (this.material && this.material.uniforms.uResolution) {
-                        this.material.uniforms.uResolution.value.set(width, height);
-                    }
-                });
-            },
-            
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                if (!this.renderer || !this.scene || !this.camera) return;
-                
-                // Only render if active
-                if (!this.isActive && this.material && this.material.uniforms) {
-                    const currentIntensity = this.material.uniforms.uIntensity.value;
-                    if (currentIntensity < 0.01) return; // Skip rendering when fully faded
-                }
-                
-                // Smooth interpolation
-                this.currentRotationX += (this.targetRotationX - this.currentRotationX) * 0.1;
-                this.currentRotationY += (this.targetRotationY - this.currentRotationY) * 0.1;
-                
-                if (this.material && this.material.uniforms) {
-                    // Update time (smooth delta time)
-                    const now = performance.now() / 1000.0;
-                    if (!this.lastTime) this.lastTime = now;
-                    const deltaTime = now - this.lastTime;
-                    this.lastTime = now;
-                    this.material.uniforms.uTime.value += deltaTime;
-                    
-                    // Update mouse position (normalized to -1 to 1)
-                    this.material.uniforms.uMouse.value.set(this.mouseX, this.mouseY);
-                    
-                    // Fade in/out intensity (faster transition)
-                    const targetIntensity = this.isActive ? 1.0 : 0.0;
-                    const currentIntensity = this.material.uniforms.uIntensity.value;
-                    this.material.uniforms.uIntensity.value += (targetIntensity - currentIntensity) * 0.15;
-                }
-                
-                this.renderer.render(this.scene, this.camera);
-            },
-            
-            toggle() {
-                console.log('Lenticular toggle clicked, current state:', this.isActive);
-                try {
-                    this.isActive = !this.isActive;
-                    const canvas = document.getElementById('lenticularCanvas');
-                    const toggleBtn = document.getElementById('lenticularToggle');
-                    
-                    if (!canvas) {
-                        console.error('Lenticular canvas not found');
-                        this.isActive = false;
-                        return;
-                    }
-                    
-                    console.log('Toggling to:', this.isActive);
-                    
-                    if (this.isActive) {
-                        // Check if Three.js is available
-                        if (typeof THREE === 'undefined') {
-                            console.error('Three.js not loaded');
-                            this.isActive = false;
-                            UI.showToast('Three.js library not loaded. Please refresh the page.', true);
-                            return;
-                        }
-                        
-                        // Initialize if needed
-                        if (!this.scene || !this.renderer) {
-                            try {
-                                console.log('Initializing lenticular effect...');
-                                const initResult = this.init();
-                                if (!initResult) {
-                                    this.isActive = false;
-                                    UI.showToast('Failed to initialize lenticular effect', true);
-                                    return;
-                                }
-                                console.log('Lenticular effect initialized successfully');
-                            } catch (e) {
-                                console.error('Failed to initialize lenticular effect:', e);
-                                this.isActive = false;
-                                UI.showToast('Failed to initialize lenticular effect', true);
-                                return;
-                            }
-                        }
-                        
-                        canvas.classList.add('active');
-                        document.body.classList.add('lenticular-active');
-                        if (toggleBtn) toggleBtn.classList.add('active');
-                        console.log('Lenticular effect activated');
-                    } else {
-                        canvas.classList.remove('active');
-                        document.body.classList.remove('lenticular-active');
-                        if (toggleBtn) toggleBtn.classList.remove('active');
-                        console.log('Lenticular effect deactivated');
-                    }
-                } catch (e) {
-                    console.error('Error toggling lenticular effect:', e);
-                    this.isActive = false;
-                    UI.showToast('Error toggling lenticular effect', true);
-                }
-            }
-        };
-        
         const UI = {
             currentView: 'write',
             editingNoteId: null,
@@ -3078,16 +2750,6 @@
                 
                 // Fullscreen toggle
                 document.getElementById('fullscreenToggle').addEventListener('click', () => this.toggleFullscreen());
-                
-                // Lenticular effect toggle
-                const lenticularToggle = document.getElementById('lenticularToggle');
-                if (lenticularToggle) {
-                    lenticularToggle.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        Lenticular.toggle();
-                    });
-                }
                 
                 // Global keyboard shortcuts
                 document.addEventListener('keydown', (e) => {
