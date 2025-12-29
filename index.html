@@ -2761,10 +2761,17 @@
                 const template = this.get(name);
                 if (!template) return;
                 
+                // Only apply template if not editing an existing note
+                if (UI.editingNoteId) {
+                    const confirmed = confirm('Applying a template will replace the current note content. Continue?');
+                    if (!confirmed) return;
+                }
+                
                 document.getElementById('noteTitle').value = template.title;
                 document.getElementById('noteContent').value = template.content;
                 EditorHistory.saveState(template.content);
                 UI.updateWordCount();
+                UI.showToast('Template applied');
             }
         };
 
@@ -3357,49 +3364,6 @@
                     });
                 }
                 
-                // PWA Install Prompt
-                let deferredPrompt;
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    deferredPrompt = e;
-                    this.showInstallButton();
-                });
-                
-                // App installed
-                window.addEventListener('appinstalled', () => {
-                    deferredPrompt = null;
-                    this.hideInstallButton();
-                    Utils.announceToScreenReader('App installed successfully');
-                });
-            },
-            
-            showInstallButton() {
-                let installBtn = document.getElementById('installBtn');
-                if (!installBtn) {
-                    installBtn = document.createElement('button');
-                    installBtn.id = 'installBtn';
-                    installBtn.className = 'btn btn-secondary';
-                    installBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Install App';
-                    installBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
-                    installBtn.addEventListener('click', () => this.installApp());
-                    document.body.appendChild(installBtn);
-                }
-                installBtn.style.display = 'flex';
-            },
-            
-            hideInstallButton() {
-                const installBtn = document.getElementById('installBtn');
-                if (installBtn) installBtn.style.display = 'none';
-            },
-            
-            async installApp() {
-                if (!window.deferredPrompt) return;
-                window.deferredPrompt.prompt();
-                const { outcome } = await window.deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    this.hideInstallButton();
-                }
-                window.deferredPrompt = null;
             },
             
             /**
@@ -4466,6 +4430,61 @@
             
             closeShareModal() {
                 document.getElementById('shareModal').classList.remove('visible');
+            },
+            
+            showTemplateMenu() {
+                const templates = Templates.list();
+                const menu = document.createElement('div');
+                menu.className = 'modal-overlay';
+                menu.style.display = 'flex';
+                menu.setAttribute('role', 'dialog');
+                menu.setAttribute('aria-modal', 'true');
+                menu.setAttribute('aria-labelledby', 'template-title');
+                
+                menu.innerHTML = `
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 id="template-title">Choose a Template</h3>
+                            <button class="modal-close" aria-label="Close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="display: grid; gap: 12px;">
+                                ${templates.map(name => {
+                                    const t = Templates.get(name);
+                                    return `
+                                        <button class="btn btn-secondary" style="text-align: left; justify-content: flex-start;" data-template="${name}">
+                                            <strong>${Utils.escapeHtml(t.title)}</strong>
+                                            <div style="font-size: 12px; opacity: 0.7; margin-top: 4px;">
+                                                ${Utils.escapeHtml(t.content.substring(0, 60))}...
+                                            </div>
+                                        </button>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                menu.querySelectorAll('[data-template]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        Templates.apply(btn.dataset.template);
+                        document.body.removeChild(menu);
+                        Utils.hapticFeedback('light');
+                    });
+                });
+                
+                menu.querySelector('.modal-close').addEventListener('click', () => {
+                    document.body.removeChild(menu);
+                });
+                
+                menu.addEventListener('click', (e) => {
+                    if (e.target === menu) {
+                        document.body.removeChild(menu);
+                    }
+                });
+                
+                document.body.appendChild(menu);
+                Utils.focusFirstElement(menu);
             },
             
             exportNote(data, format) {
