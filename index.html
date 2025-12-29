@@ -1874,6 +1874,7 @@
                             </div>
                             <div class="toolbar-divider"></div>
                             <div class="toolbar-group">
+                                <button type="button" class="toolbar-btn" id="templateBtn" data-tooltip="Templates" aria-label="Note templates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></button>
                                 <button type="button" class="toolbar-btn" id="drawingToggle" data-tooltip="Sketch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></button>
                             </div>
                         </div>
@@ -1907,6 +1908,10 @@
                 <div class="encryption-badge" role="status" aria-label="Encryption status">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     End-to-end encrypted · Zero-knowledge
+                </div>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="noteTags">Tags (comma-separated)</label>
+                    <input type="text" id="noteTags" class="title-input" placeholder="work, ideas, personal" autocomplete="off" aria-label="Note tags">
                 </div>
                 <div class="actions" style="margin-top: 24px;">
                     <button type="submit" class="btn btn-primary" id="saveBtn" aria-label="Save note" aria-keyshortcuts="Ctrl+S">
@@ -2656,6 +2661,179 @@
         };
 
         // ============================================
+        // NOTE TEMPLATES
+        // ============================================
+        const Templates = {
+            templates: {
+                'meeting': {
+                    title: 'Meeting Notes',
+                    content: `# Meeting Notes
+
+**Date:** ${new Date().toLocaleDateString()}
+**Attendees:** 
+
+## Agenda
+- 
+- 
+- 
+
+## Discussion
+- 
+
+## Action Items
+- [ ] 
+- [ ] 
+- [ ] 
+
+## Next Steps
+- `
+                },
+                'todo': {
+                    title: 'Todo List',
+                    content: `# Todo List
+
+## Today
+- [ ] 
+- [ ] 
+- [ ] 
+
+## This Week
+- [ ] 
+- [ ] 
+
+## Later
+- [ ] 
+`
+                },
+                'journal': {
+                    title: 'Journal Entry',
+                    content: `# ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
+## Today I...
+
+## I'm grateful for...
+
+## Tomorrow I will...
+`
+                },
+                'idea': {
+                    title: 'Idea',
+                    content: `# Idea
+
+## Concept
+
+
+## Why this matters
+
+
+## Implementation
+
+
+## Next steps
+- [ ] 
+- [ ] 
+`
+                }
+            },
+            
+            /**
+             * Get template by name
+             * @param {string} name - Template name
+             * @returns {Object|null} Template object
+             */
+            get(name) {
+                return this.templates[name] || null;
+            },
+            
+            /**
+             * List all templates
+             * @returns {Array} Array of template names
+             */
+            list() {
+                return Object.keys(this.templates);
+            },
+            
+            /**
+             * Apply template to editor
+             * @param {string} name - Template name
+             */
+            apply(name) {
+                const template = this.get(name);
+                if (!template) return;
+                
+                document.getElementById('noteTitle').value = template.title;
+                document.getElementById('noteContent').value = template.content;
+                EditorHistory.saveState(template.content);
+                UI.updateWordCount();
+            }
+        };
+
+        // ============================================
+        // VERSION HISTORY
+        // ============================================
+        const VersionHistory = {
+            STORAGE_KEY: CONSTANTS.STORAGE_KEYS.VERSIONS,
+            
+            /**
+             * Save version of a note
+             * @param {string} noteId - Note ID
+             * @param {Object} noteData - Note data
+             */
+            saveVersion(noteId, noteData) {
+                const versions = this.getVersions(noteId);
+                versions.unshift({
+                    ...noteData,
+                    savedAt: Date.now(),
+                    versionId: Crypto.generateId()
+                });
+                
+                // Keep only last N versions
+                const maxVersions = CONSTANTS.LIMITS.MAX_VERSIONS;
+                if (versions.length > maxVersions) {
+                    versions.splice(maxVersions);
+                }
+                
+                const allVersions = this.getAllVersions();
+                allVersions[noteId] = versions;
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allVersions));
+            },
+            
+            /**
+             * Get versions for a note
+             * @param {string} noteId - Note ID
+             * @returns {Array} Array of versions
+             */
+            getVersions(noteId) {
+                const allVersions = this.getAllVersions();
+                return allVersions[noteId] || [];
+            },
+            
+            /**
+             * Get all versions
+             * @returns {Object} Object mapping note IDs to versions
+             */
+            getAllVersions() {
+                try {
+                    return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+                } catch {
+                    return {};
+                }
+            },
+            
+            /**
+             * Restore a version
+             * @param {string} noteId - Note ID
+             * @param {string} versionId - Version ID
+             * @returns {Object|null} Version data
+             */
+            restoreVersion(noteId, versionId) {
+                const versions = this.getVersions(noteId);
+                const version = versions.find(v => v.versionId === versionId);
+                return version || null;
+            }
+        };
+
+        // ============================================
         // EDITOR HISTORY (Undo/Redo)
         // ============================================
         const EditorHistory = {
@@ -3050,12 +3228,14 @@
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             },
             
-            insertDrawing() {
-                const dataUrl = this.canvas.toDataURL('image/png');
+            async insertDrawing() {
+                // Optimize image before inserting
+                const originalDataUrl = this.canvas.toDataURL('image/png');
+                const optimizedDataUrl = await this.optimizeImage(originalDataUrl);
                 
                 // Insert markdown image reference into content
                 const content = document.getElementById('noteContent');
-                const imageMarkdown = `\n\n![Drawing](${dataUrl})\n\n`;
+                const imageMarkdown = `\n\n![Drawing](${optimizedDataUrl})\n\n`;
                 const cursorPos = content.selectionStart;
                 content.value = content.value.substring(0, cursorPos) + imageMarkdown + content.value.substring(cursorPos);
                 content.focus();
@@ -3071,6 +3251,51 @@
                 this.clear();
                 
                 UI.showToast('Drawing added!');
+            },
+            
+            /**
+             * Optimize image data URL by reducing quality if too large
+             * @param {string} dataUrl - Original data URL
+             * @returns {Promise<string>} Optimized data URL
+             */
+            optimizeImage(dataUrl) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const MAX_SIZE = 800; // Max width/height
+                        const MAX_FILE_SIZE = 500000; // ~500KB
+                        
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Resize if too large
+                        if (width > MAX_SIZE || height > MAX_SIZE) {
+                            const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+                            width = Math.floor(width * ratio);
+                            height = Math.floor(height * ratio);
+                        }
+                        
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Try different quality levels to keep file size reasonable
+                        let quality = 0.9;
+                        let optimized = canvas.toDataURL('image/jpeg', quality);
+                        
+                        // Reduce quality if still too large
+                        while (optimized.length > MAX_FILE_SIZE && quality > 0.3) {
+                            quality -= 0.1;
+                            optimized = canvas.toDataURL('image/jpeg', quality);
+                        }
+                        
+                        resolve(optimized);
+                    };
+                    img.onerror = () => resolve(dataUrl); // Fallback to original
+                    img.src = dataUrl;
+                });
             }
         };
 
@@ -3113,10 +3338,68 @@
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', () => {
                         navigator.serviceWorker.register('/sw.js')
-                            .then((reg) => console.log('Service Worker registered'))
+                            .then((reg) => {
+                                console.log('Service Worker registered');
+                                // Check for updates
+                                reg.addEventListener('updatefound', () => {
+                                    const newWorker = reg.installing;
+                                    newWorker.addEventListener('statechange', () => {
+                                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                            UI.showToast('New version available. Refresh to update.', false, {
+                                                label: 'Refresh',
+                                                onClick: () => window.location.reload()
+                                            });
+                                        }
+                                    });
+                                });
+                            })
                             .catch((err) => console.log('Service Worker registration failed:', err));
                     });
                 }
+                
+                // PWA Install Prompt
+                let deferredPrompt;
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    this.showInstallButton();
+                });
+                
+                // App installed
+                window.addEventListener('appinstalled', () => {
+                    deferredPrompt = null;
+                    this.hideInstallButton();
+                    Utils.announceToScreenReader('App installed successfully');
+                });
+            },
+            
+            showInstallButton() {
+                let installBtn = document.getElementById('installBtn');
+                if (!installBtn) {
+                    installBtn = document.createElement('button');
+                    installBtn.id = 'installBtn';
+                    installBtn.className = 'btn btn-secondary';
+                    installBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Install App';
+                    installBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+                    installBtn.addEventListener('click', () => this.installApp());
+                    document.body.appendChild(installBtn);
+                }
+                installBtn.style.display = 'flex';
+            },
+            
+            hideInstallButton() {
+                const installBtn = document.getElementById('installBtn');
+                if (installBtn) installBtn.style.display = 'none';
+            },
+            
+            async installApp() {
+                if (!window.deferredPrompt) return;
+                window.deferredPrompt.prompt();
+                const { outcome } = await window.deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    this.hideInstallButton();
+                }
+                window.deferredPrompt = null;
             },
             
             /**
@@ -3189,6 +3472,81 @@
                         }
                     }
                 });
+                
+                // Touch gestures for mobile
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let touchStartTime = 0;
+                
+                editor.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchStartTime = Date.now();
+                }, { passive: true });
+                
+                editor.addEventListener('touchend', (e) => {
+                    if (!touchStartX || !touchStartY) return;
+                    
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const touchEndTime = Date.now();
+                    
+                    const deltaX = touchEndX - touchStartX;
+                    const deltaY = touchEndY - touchStartY;
+                    const deltaTime = touchEndTime - touchStartTime;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    
+                    // Swipe detection (min 50px, max 300ms)
+                    if (distance > 50 && deltaTime < 300) {
+                        // Horizontal swipe
+                        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                            if (deltaX > 0) {
+                                // Swipe right - undo
+                                if (EditorHistory.canUndo()) {
+                                    const state = EditorHistory.undo();
+                                    if (state !== null) {
+                                        editor.value = state;
+                                        this.updateWordCount();
+                                        Utils.hapticFeedback('light');
+                                        Utils.announceToScreenReader('Undone');
+                                    }
+                                }
+                            } else {
+                                // Swipe left - redo
+                                if (EditorHistory.canRedo()) {
+                                    const state = EditorHistory.redo();
+                                    if (state !== null) {
+                                        editor.value = state;
+                                        this.updateWordCount();
+                                        Utils.hapticFeedback('light');
+                                        Utils.announceToScreenReader('Redone');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    touchStartX = 0;
+                    touchStartY = 0;
+                }, { passive: true });
+                
+                // Mobile keyboard handling - prevent zoom on input focus
+                if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                    const viewport = document.querySelector('meta[name="viewport"]');
+                    let initialContent = viewport?.getAttribute('content') || '';
+                    
+                    editor.addEventListener('focus', () => {
+                        if (viewport && !initialContent.includes('maximum-scale')) {
+                            viewport.setAttribute('content', initialContent + ', maximum-scale=1.0');
+                        }
+                    }, { passive: true });
+                    
+                    editor.addEventListener('blur', () => {
+                        if (viewport) {
+                            viewport.setAttribute('content', initialContent);
+                        }
+                    }, { passive: true });
+                }
             },
             
             /**
@@ -3486,6 +3844,11 @@
                     btn.addEventListener('click', () => this.applyFormat(btn.dataset.format));
                 });
                 
+                // Template button
+                document.getElementById('templateBtn')?.addEventListener('click', () => {
+                    this.showTemplateMenu();
+                });
+                
                 // Editor tabs (Edit/Preview)
                 document.querySelectorAll('.editor-tab').forEach(tab => {
                     tab.addEventListener('click', () => this.switchEditorMode(tab.dataset.mode));
@@ -3775,16 +4138,22 @@
                     const visibleNotes = notes.slice(0, ITEMS_PER_PAGE);
                     this.renderedNotesCount = visibleNotes.length;
                     
-                    list.innerHTML = visibleNotes.map(n => `
+                    list.innerHTML = visibleNotes.map(n => {
+                        const tags = n.tags || [];
+                        return `
                         <li class="note-item" data-id="${n.id}">
                             <div class="note-header">
                                 <span class="note-title">${this.escapeHtml(n.encrypted ? '🔒 Encrypted Note' : n.title)}</span>
                                 <span class="note-badge ${n.isPrivate ? 'private' : 'public'}">${n.isPrivate ? 'Private' : 'Public'}</span>
                             </div>
+                            ${tags.length > 0 ? `<div class="note-tags" style="display: flex; gap: 4px; flex-wrap: wrap; margin: 8px 0;">
+                                ${tags.map(tag => `<span class="tag-badge" style="font-size: 11px; padding: 2px 8px; background: var(--paper-dark); border-radius: 12px; color: var(--ink-light);">${this.escapeHtml(tag)}</span>`).join('')}
+                            </div>` : ''}
                             <p class="note-preview">${n.encrypted ? 'Click to decrypt' : this.escapeHtml(Markdown.stripToPlain(n.content).substring(0, 150))}</p>
                             <div class="note-meta"><span>${this.formatDate(n.updatedAt)}</span></div>
                         </li>
-                    `).join('');
+                    `;
+                    }).join('');
                     
                     // Add load more button if there are more notes
                     if (notes.length > ITEMS_PER_PAGE) {
@@ -3814,6 +4183,7 @@
                 const fragment = document.createDocumentFragment();
                 
                 nextBatch.forEach(n => {
+                    const tags = n.tags || [];
                     const li = document.createElement('li');
                     li.className = 'note-item';
                     li.dataset.id = n.id;
@@ -3822,6 +4192,9 @@
                             <span class="note-title">${this.escapeHtml(n.encrypted ? '🔒 Encrypted Note' : n.title)}</span>
                             <span class="note-badge ${n.isPrivate ? 'private' : 'public'}">${n.isPrivate ? 'Private' : 'Public'}</span>
                         </div>
+                        ${tags.length > 0 ? `<div class="note-tags" style="display: flex; gap: 4px; flex-wrap: wrap; margin: 8px 0;">
+                            ${tags.map(tag => `<span class="tag-badge" style="font-size: 11px; padding: 2px 8px; background: var(--paper-dark); border-radius: 12px; color: var(--ink-light);">${this.escapeHtml(tag)}</span>`).join('')}
+                        </div>` : ''}
                         <p class="note-preview">${n.encrypted ? 'Click to decrypt' : this.escapeHtml(Markdown.stripToPlain(n.content).substring(0, 150))}</p>
                         <div class="note-meta"><span>${this.formatDate(n.updatedAt)}</span></div>
                     `;
@@ -3972,6 +4345,10 @@
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="8" y="17" font-size="6" fill="currentColor">MD</text></svg>
                                         Export as Markdown
                                     </button>
+                                    <button class="export-option" data-format="html">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="8" y="17" font-size="6" fill="currentColor">HTML</text></svg>
+                                        Export as HTML
+                                    </button>
                                 </div>
                             </div>
                             ${isOwner ? '<button class="btn btn-secondary" id="editNote">Edit</button><button class="btn btn-danger" id="deleteNote">Delete</button>' : ''}
@@ -4095,6 +4472,56 @@
                 const title = data.title || 'Untitled';
                 const content = data.content || '';
                 const filename = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                
+                if (format === 'html') {
+                    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.escapeHtml(title)}</title>
+    <style>
+        body {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.8;
+            color: #1a1a18;
+            background: #faf8f5;
+        }
+        h1 { font-size: 2.5em; margin-bottom: 0.5em; }
+        h2 { font-size: 2em; margin-top: 1.5em; margin-bottom: 0.5em; }
+        h3 { font-size: 1.5em; margin-top: 1.2em; margin-bottom: 0.4em; }
+        p { margin: 1em 0; }
+        code { background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; }
+        pre { background: rgba(0,0,0,0.05); padding: 16px; border-radius: 8px; overflow-x: auto; }
+        blockquote { border-left: 4px solid #c45d3e; padding-left: 20px; margin-left: 0; color: #6b6860; }
+        img { max-width: 100%; height: auto; border-radius: 8px; margin: 1em 0; }
+        a { color: #c45d3e; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .drawing-embed { text-align: center; margin: 2em 0; }
+        .drawing-embed img { max-width: 100%; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <h1>${this.escapeHtml(title)}</h1>
+    <div>${Markdown.parse(content)}</div>
+</body>
+</html>`;
+                    const blob = new Blob([htmlContent], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${filename}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showToast('Exported as HTML');
+                    return;
+                }
                 
                 if (format === 'pdf') {
                     // Create a print-friendly version
