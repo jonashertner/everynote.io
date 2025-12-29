@@ -2153,15 +2153,51 @@
             isConfigured: false,
             
             init() {
+                // Lazy load Firebase only when needed
+                this.lazyLoadFirebase();
+            },
+            
+            async lazyLoadFirebase() {
                 try {
                     if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('YOUR_')) {
+                        // Check if Firebase is already loaded
+                        if (typeof firebase === 'undefined') {
+                            // Dynamically load Firebase scripts
+                            await this.loadFirebaseScripts();
+                        }
                         firebase.initializeApp(firebaseConfig);
                         this.db = firebase.firestore();
                         this.isConfigured = true;
                     } else {
                         document.getElementById('setupNotice').style.display = 'block';
                     }
-                } catch (e) { console.error('Firebase init error:', e); }
+                } catch (e) { 
+                    console.error('Firebase init error:', e);
+                    document.getElementById('setupNotice').style.display = 'block';
+                }
+            },
+            
+            loadFirebaseScripts() {
+                return new Promise((resolve, reject) => {
+                    // Firebase scripts are already in HTML, so just check if they're loaded
+                    if (typeof firebase !== 'undefined') {
+                        resolve();
+                        return;
+                    }
+                    
+                    // Wait for scripts to load (they're in the HTML head)
+                    let attempts = 0;
+                    const checkFirebase = setInterval(() => {
+                        attempts++;
+                        if (typeof firebase !== 'undefined') {
+                            clearInterval(checkFirebase);
+                            resolve();
+                        } else if (attempts > 50) {
+                            clearInterval(checkFirebase);
+                            reject(new Error('Firebase scripts failed to load'));
+                        }
+                    }, 100);
+                });
             },
             
             async saveNote(note) {
@@ -3483,7 +3519,17 @@
                 });
             },
             
-            filterNotes(query) {
+            filterNotes: (() => {
+                let debounceTimer;
+                return function(query) {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        this._filterNotesInternal(query);
+                    }, 150); // 150ms debounce
+                };
+            })(),
+            
+            _filterNotesInternal(query) {
                 const items = document.querySelectorAll('.note-item');
                 const empty = document.getElementById('emptyState');
                 const lowerQuery = query.toLowerCase().trim();
@@ -3724,7 +3770,12 @@
                         return;
                     }
                     
-                    list.innerHTML = notes.map(n => `
+                    // Virtual scrolling for large lists (render first 50, lazy load rest)
+                    const ITEMS_PER_PAGE = 50;
+                    const visibleNotes = notes.slice(0, ITEMS_PER_PAGE);
+                    this.renderedNotesCount = visibleNotes.length;
+                    
+                    list.innerHTML = visibleNotes.map(n => `
                         <li class="note-item" data-id="${n.id}">
                             <div class="note-header">
                                 <span class="note-title">${this.escapeHtml(n.encrypted ? '🔒 Encrypted Note' : n.title)}</span>
@@ -3735,12 +3786,66 @@
                         </li>
                     `).join('');
                     
+                    // Add load more button if there are more notes
+                    if (notes.length > ITEMS_PER_PAGE) {
+                        const loadMoreBtn = document.createElement('li');
+                        loadMoreBtn.className = 'load-more-btn';
+                        loadMoreBtn.innerHTML = `<button class="btn btn-secondary" style="width: 100%; margin-top: 16px;">Load ${notes.length - ITEMS_PER_PAGE} more notes</button>`;
+                        loadMoreBtn.querySelector('button').addEventListener('click', () => {
+                            this.loadMoreNotes(notes, ITEMS_PER_PAGE);
+                            loadMoreBtn.remove();
+                        });
+                        list.appendChild(loadMoreBtn);
+                    }
+                    
                     list.querySelectorAll('.note-item').forEach(item => {
                         item.addEventListener('click', () => this.openNote(item.dataset.id));
                     });
                 } catch (e) {
                     loading.style.display = 'none';
                     this.showToast('Failed to load notes', true);
+                }
+            },
+            
+            loadMoreNotes(notes, startIndex) {
+                const list = document.getElementById('notesList');
+                const remaining = notes.slice(startIndex);
+                const nextBatch = remaining.slice(0, 50);
+                const fragment = document.createDocumentFragment();
+                
+                nextBatch.forEach(n => {
+                    const li = document.createElement('li');
+                    li.className = 'note-item';
+                    li.dataset.id = n.id;
+                    li.innerHTML = `
+                        <div class="note-header">
+                            <span class="note-title">${this.escapeHtml(n.encrypted ? '🔒 Encrypted Note' : n.title)}</span>
+                            <span class="note-badge ${n.isPrivate ? 'private' : 'public'}">${n.isPrivate ? 'Private' : 'Public'}</span>
+                        </div>
+                        <p class="note-preview">${n.encrypted ? 'Click to decrypt' : this.escapeHtml(Markdown.stripToPlain(n.content).substring(0, 150))}</p>
+                        <div class="note-meta"><span>${this.formatDate(n.updatedAt)}</span></div>
+                    `;
+                    li.addEventListener('click', () => this.openNote(n.id));
+                    fragment.appendChild(li);
+                });
+                
+                const loadMoreBtn = list.querySelector('.load-more-btn');
+                if (loadMoreBtn) loadMoreBtn.before(fragment);
+                else list.appendChild(fragment);
+                
+                this.renderedNotesCount += nextBatch.length;
+                
+                // Add load more button if there are still more notes
+                if (this.renderedNotesCount < notes.length) {
+                    const remainingCount = notes.length - this.renderedNotesCount;
+                    const newLoadMoreBtn = document.createElement('li');
+                    newLoadMoreBtn.className = 'load-more-btn';
+                    newLoadMoreBtn.innerHTML = `<button class="btn btn-secondary" style="width: 100%; margin-top: 16px;">Load ${remainingCount} more notes</button>`;
+                    newLoadMoreBtn.querySelector('button').addEventListener('click', () => {
+                        this.loadMoreNotes(notes, this.renderedNotesCount);
+                        newLoadMoreBtn.remove();
+                    });
+                    list.appendChild(newLoadMoreBtn);
                 }
             },
             
