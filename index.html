@@ -2134,8 +2134,7 @@
                 DRAFT: 'everynote_draft',
                 SYNC_QUEUE: 'everynote_sync_queue',
                 TRASH: 'everynote_trash',
-                VERSIONS: 'everynote_versions',
-                FIREBASE_CONFIG: 'everynote_firebase_config'
+                VERSIONS: 'everynote_versions'
             },
             LIMITS: {
                 MAX_TITLE_LENGTH: 200,
@@ -2208,40 +2207,14 @@
         };
 
         // Firebase configuration
-        // SECURITY: These are loaded from URL parameters or localStorage for user-provided config
-        // To enable cloud sync, visit: yoursite.com?fb_config=base64_encoded_config
-        // Or set localStorage.setItem('everynote_firebase_config', JSON.stringify({apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId}))
-        const getFirebaseConfig = () => {
-            try {
-                // Check URL params first (for easy setup links)
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlConfig = urlParams.get('fb_config');
-                if (urlConfig) {
-                    const config = JSON.parse(atob(urlConfig));
-                    // Store for future use and remove from URL
-                    localStorage.setItem('everynote_firebase_config', JSON.stringify(config));
-                    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-                    return config;
-                }
-                // Check localStorage
-                const storedConfig = localStorage.getItem('everynote_firebase_config');
-                if (storedConfig) {
-                    return JSON.parse(storedConfig);
-                }
-            } catch (e) {
-                Logger.error('Failed to load Firebase config:', e);
-            }
-            // Return placeholder config (cloud sync disabled)
-            return {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_PROJECT.firebaseapp.com",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_PROJECT.appspot.com",
-                messagingSenderId: "YOUR_SENDER_ID",
-                appId: "YOUR_APP_ID"
-            };
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_CXy_JzqiXGF7eaCK33BGCTDbclpcABI",
+            authDomain: "everynote-8889a.firebaseapp.com",
+            projectId: "everynote-8889a",
+            storageBucket: "everynote-8889a.firebasestorage.app",
+            messagingSenderId: "1082657437406",
+            appId: "1:1082657437406:web:ceef295800767abf15b44f"
         };
-        const firebaseConfig = getFirebaseConfig();
 
         // ============================================
         // UTILITY FUNCTIONS
