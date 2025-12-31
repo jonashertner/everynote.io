@@ -1746,10 +1746,138 @@
                 color: var(--ink-light);
             }
         }
+
+        /* Sync/Offline Status Indicator */
+        .sync-status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--ink-light);
+            box-shadow: 0 2px 8px var(--shadow);
+            z-index: 1000;
+            transition: all var(--transition);
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+        .sync-status.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .sync-status.offline {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .sync-status.syncing {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            color: #1565c0;
+        }
+        .sync-status.error {
+            background: #ffebee;
+            border-color: #ef5350;
+            color: #c62828;
+        }
+        .sync-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .sync-status.syncing .sync-status-dot {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Accessibility: Focus visible styles */
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* Skip link for keyboard navigation */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--ink);
+            color: white;
+            padding: 8px 16px;
+            z-index: 10000;
+            text-decoration: none;
+            border-radius: 0 0 var(--radius) 0;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Password strength - add text labels */
+        .password-strength {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .password-strength-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .password-strength-fill {
+            height: 100%;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+        .password-strength-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            :root {
+                --border: rgba(0, 0, 0, 0.3);
+                --ink-light: #333;
+            }
+        }
+
+        /* Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 <body>
-        <div class="container">
+    <!-- Skip link for keyboard accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Sync/Offline Status Indicator -->
+    <div id="syncStatus" class="sync-status" role="status" aria-live="polite" aria-atomic="true">
+        <span class="sync-status-dot" aria-hidden="true"></span>
+        <span class="sync-status-text">Online</span>
+    </div>
+
+    <div class="container">
         <header role="banner">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
@@ -2006,7 +2134,8 @@
                 DRAFT: 'everynote_draft',
                 SYNC_QUEUE: 'everynote_sync_queue',
                 TRASH: 'everynote_trash',
-                VERSIONS: 'everynote_versions'
+                VERSIONS: 'everynote_versions',
+                FIREBASE_CONFIG: 'everynote_firebase_config'
             },
             LIMITS: {
                 MAX_TITLE_LENGTH: 200,
@@ -2024,18 +2153,95 @@
             RATE_LIMIT: {
                 MAX_ATTEMPTS: 5,
                 LOCKOUT_MS: 30000
+            },
+            TIMING: {
+                DRAFT_SAVE_DEBOUNCE_MS: 1000,
+                DRAFT_EXPIRY_MS: 86400000, // 24 hours
+                TOAST_DURATION_MS: 3000,
+                SR_ANNOUNCEMENT_CLEAR_MS: 1000,
+                FIREBASE_LOAD_POLL_MS: 100,
+                FIREBASE_LOAD_MAX_ATTEMPTS: 50,
+                SYNC_RETRY_DELAY_MS: 5000
+            },
+            // Environment detection for logging
+            IS_PRODUCTION: window.location.hostname !== 'localhost' &&
+                          !window.location.hostname.includes('127.0.0.1') &&
+                          !window.location.hostname.includes('.local')
+        };
+
+        // ============================================
+        // PRODUCTION-SAFE LOGGER
+        // ============================================
+        const Logger = {
+            /**
+             * Log error (always logged, but sanitized in production)
+             * @param {...any} args - Arguments to log
+             */
+            error(...args) {
+                if (!CONSTANTS.IS_PRODUCTION) {
+                    console.error(...args);
+                } else {
+                    // In production, log generic message without sensitive details
+                    console.error('[everynote] An error occurred');
+                }
+            },
+
+            /**
+             * Log warning (development only)
+             * @param {...any} args - Arguments to log
+             */
+            warn(...args) {
+                if (!CONSTANTS.IS_PRODUCTION) {
+                    console.warn(...args);
+                }
+            },
+
+            /**
+             * Log info (development only)
+             * @param {...any} args - Arguments to log
+             */
+            log(...args) {
+                if (!CONSTANTS.IS_PRODUCTION) {
+                    console.log(...args);
+                }
             }
         };
 
         // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyC_CXy_JzqiXGF7eaCK33BGCTDbclpcABI",
-            authDomain: "everynote-8889a.firebaseapp.com",
-            projectId: "everynote-8889a",
-            storageBucket: "everynote-8889a.firebasestorage.app",
-            messagingSenderId: "1082657437406",
-            appId: "1:1082657437406:web:ceef295800767abf15b44f"
+        // SECURITY: These are loaded from URL parameters or localStorage for user-provided config
+        // To enable cloud sync, visit: yoursite.com?fb_config=base64_encoded_config
+        // Or set localStorage.setItem('everynote_firebase_config', JSON.stringify({apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId}))
+        const getFirebaseConfig = () => {
+            try {
+                // Check URL params first (for easy setup links)
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlConfig = urlParams.get('fb_config');
+                if (urlConfig) {
+                    const config = JSON.parse(atob(urlConfig));
+                    // Store for future use and remove from URL
+                    localStorage.setItem('everynote_firebase_config', JSON.stringify(config));
+                    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+                    return config;
+                }
+                // Check localStorage
+                const storedConfig = localStorage.getItem('everynote_firebase_config');
+                if (storedConfig) {
+                    return JSON.parse(storedConfig);
+                }
+            } catch (e) {
+                Logger.error('Failed to load Firebase config:', e);
+            }
+            // Return placeholder config (cloud sync disabled)
+            return {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
         };
+        const firebaseConfig = getFirebaseConfig();
 
         // ============================================
         // UTILITY FUNCTIONS
@@ -2080,6 +2286,43 @@
                     return 'Incorrect password. Please try again.';
                 }
                 return 'An error occurred. Please try again.';
+            },
+
+            /**
+             * Error boundary wrapper for async operations
+             * Prevents cascading failures and provides graceful degradation
+             * @param {Function} fn - Async function to execute
+             * @param {Object} options - Options for error handling
+             * @param {string} options.operation - Name of the operation for logging
+             * @param {any} options.fallback - Fallback value on error
+             * @param {boolean} options.showToast - Whether to show toast on error
+             * @returns {Promise<any>} Result or fallback value
+             */
+            async withErrorBoundary(fn, options = {}) {
+                const { operation = 'operation', fallback = null, showToast = true } = options;
+                try {
+                    return await fn();
+                } catch (error) {
+                    Logger.error(`Error in ${operation}:`, error);
+                    if (showToast && typeof UI !== 'undefined' && UI.showToast) {
+                        UI.showToast(this.getErrorMessage(error), true);
+                    }
+                    return fallback;
+                }
+            },
+
+            /**
+             * Debounce function to limit execution rate
+             * @param {Function} fn - Function to debounce
+             * @param {number} delay - Delay in milliseconds
+             * @returns {Function} Debounced function
+             */
+            debounce(fn, delay) {
+                let timeoutId;
+                return function (...args) {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+                };
             },
 
             /**
@@ -2177,7 +2420,7 @@
                         document.getElementById('setupNotice').style.display = 'block';
                     }
                 } catch (e) { 
-                    console.error('Firebase init error:', e);
+                    Logger.error('Firebase init error:', e);
                     document.getElementById('setupNotice').style.display = 'block';
                 }
             },
@@ -2213,7 +2456,7 @@
                         ...note,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                } catch (e) { console.error('Save error:', e); }
+                } catch (e) { Logger.error('Save error:', e); }
                 return note;
             },
             
@@ -2225,7 +2468,7 @@
                             const data = doc.data();
                             return { ...data, updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt };
                         }
-                    } catch (e) { console.error('Get error:', e); }
+                    } catch (e) { Logger.error('Get error:', e); }
                 }
                 return this.getFromLocal(id);
             },
@@ -2250,14 +2493,14 @@
                         if (!existing || n.updatedAt > existing.updatedAt) merged.set(n.id, n);
                     });
                     return Array.from(merged.values()).sort((a, b) => b.updatedAt - a.updatedAt);
-                } catch (e) { console.error('List error:', e); return localNotes; }
+                } catch (e) { Logger.error('List error:', e); return localNotes; }
             },
             
             async deleteNote(id) {
                 this.deleteFromLocal(id);
                 if (this.isConfigured) {
                     try { await this.db.collection('notes').doc(id).delete(); }
-                    catch (e) { console.error('Delete error:', e); }
+                    catch (e) { Logger.error('Delete error:', e); }
                 }
             },
             
@@ -2268,7 +2511,7 @@
                 try {
                     localStorage.setItem(CONSTANTS.STORAGE_KEYS.NOTES, JSON.stringify(notes));
                 } catch (e) {
-                    console.error('Failed to save to local storage:', e);
+                    Logger.error('Failed to save to local storage:', e);
                     UI.showToast(Utils.getErrorMessage(e), true);
                 }
             },
@@ -2285,7 +2528,7 @@
                 try {
                     localStorage.setItem(CONSTANTS.STORAGE_KEYS.NOTES, JSON.stringify(notes));
                 } catch (e) {
-                    console.error('Failed to delete from local storage:', e);
+                    Logger.error('Failed to delete from local storage:', e);
                 }
             },
             
@@ -2315,7 +2558,7 @@
                         }
                         return { used, quota, percentage };
                     } catch (e) {
-                        console.error('Failed to check storage quota:', e);
+                        Logger.error('Failed to check storage quota:', e);
                     }
                 }
                 return null;
@@ -2375,22 +2618,36 @@
              * @throws {Error} If decryption fails
              */
             async decrypt(encryptedBase64, password) {
-                let decrypted = null;
+                const startTime = performance.now();
+                const MIN_OPERATION_TIME_MS = 100; // Minimum time to mask fast failures
+
+                let result = null;
+                let error = null;
+
                 try {
                     const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
                     const salt = combined.slice(0, CONSTANTS.CRYPTO.SALT_LENGTH);
                     const iv = combined.slice(CONSTANTS.CRYPTO.SALT_LENGTH, CONSTANTS.CRYPTO.SALT_LENGTH + CONSTANTS.CRYPTO.IV_LENGTH);
                     const ciphertext = combined.slice(CONSTANTS.CRYPTO.SALT_LENGTH + CONSTANTS.CRYPTO.IV_LENGTH);
                     const key = await this.generateKey(password, salt);
-                    decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-                    return new TextDecoder().decode(decrypted);
-                } catch {
-                    // Perform dummy operation to prevent timing attacks
-                    try {
-                        await crypto.subtle.importKey('raw', new Uint8Array(32), 'AES-GCM', false, []);
-                    } catch {}
-                    throw new Error('Decryption failed');
+                    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+                    result = new TextDecoder().decode(decrypted);
+                } catch (e) {
+                    error = new Error('Decryption failed');
                 }
+
+                // Timing attack mitigation: ensure operation takes at least MIN_OPERATION_TIME_MS
+                // plus a random jitter to prevent statistical analysis
+                const elapsed = performance.now() - startTime;
+                const randomJitter = crypto.getRandomValues(new Uint8Array(1))[0] / 255 * 50; // 0-50ms jitter
+                const remainingTime = Math.max(0, MIN_OPERATION_TIME_MS - elapsed + randomJitter);
+
+                if (remainingTime > 0) {
+                    await new Promise(resolve => setTimeout(resolve, remainingTime));
+                }
+
+                if (error) throw error;
+                return result;
             },
             
             /**
@@ -2603,7 +2860,7 @@
                             await Database.db.collection('notes').doc(op.noteId).delete();
                         }
                     } catch (e) {
-                        console.error('Sync failed:', e);
+                        Logger.error('Sync failed:', e);
                         remaining.push(op);
                     }
                 }
@@ -2612,8 +2869,95 @@
             },
             
             init() {
-                window.addEventListener('online', () => this.process());
+                window.addEventListener('online', () => {
+                    this.process();
+                    SyncStatus.update('syncing', 'Syncing...');
+                });
                 this.process();
+            }
+        };
+
+        // ============================================
+        // SYNC STATUS INDICATOR
+        // ============================================
+        const SyncStatus = {
+            element: null,
+            textElement: null,
+            hideTimeout: null,
+
+            init() {
+                this.element = document.getElementById('syncStatus');
+                this.textElement = this.element?.querySelector('.sync-status-text');
+
+                // Monitor online/offline status
+                window.addEventListener('online', () => {
+                    this.update('syncing', 'Back online, syncing...');
+                    // Hide after sync completes
+                    setTimeout(() => this.hide(), 3000);
+                });
+
+                window.addEventListener('offline', () => {
+                    this.update('offline', 'Offline - changes saved locally');
+                });
+
+                // Show initial status if offline
+                if (!navigator.onLine) {
+                    this.update('offline', 'Offline - changes saved locally');
+                }
+            },
+
+            /**
+             * Update the sync status indicator
+             * @param {string} status - Status type: 'online', 'offline', 'syncing', 'error'
+             * @param {string} message - Message to display
+             * @param {number} autoHideMs - Auto-hide after this many milliseconds (0 = don't auto-hide)
+             */
+            update(status, message, autoHideMs = 0) {
+                if (!this.element || !this.textElement) return;
+
+                // Clear any pending hide timeout
+                clearTimeout(this.hideTimeout);
+
+                // Update classes
+                this.element.className = 'sync-status visible';
+                if (status) {
+                    this.element.classList.add(status);
+                }
+
+                // Update text
+                this.textElement.textContent = message;
+
+                // Announce to screen readers
+                Utils.announceToScreenReader(message);
+
+                // Auto-hide if specified
+                if (autoHideMs > 0) {
+                    this.hideTimeout = setTimeout(() => this.hide(), autoHideMs);
+                }
+            },
+
+            /**
+             * Show sync error
+             * @param {string} message - Error message
+             */
+            showError(message) {
+                this.update('error', message, 5000);
+            },
+
+            /**
+             * Show successful sync
+             */
+            showSuccess() {
+                this.update('', 'Synced', 2000);
+            },
+
+            /**
+             * Hide the status indicator
+             */
+            hide() {
+                if (this.element) {
+                    this.element.classList.remove('visible');
+                }
             }
         };
 
@@ -3319,12 +3663,12 @@
             async init() {
                 // Global error handlers
                 window.addEventListener('error', (event) => {
-                    console.error('Global error:', event.error);
+                    Logger.error('Global error:', event.error);
                     this.showToast(Utils.getErrorMessage(event.error), true);
                 });
                 
                 window.addEventListener('unhandledrejection', (event) => {
-                    console.error('Unhandled promise rejection:', event.reason);
+                    Logger.error('Unhandled promise rejection:', event.reason);
                     this.showToast(Utils.getErrorMessage(event.reason), true);
                 });
                 
@@ -3335,6 +3679,7 @@
                 Database.init();
                 Drawing.init();
                 SyncQueue.init();
+                SyncStatus.init();
                 this.loadTheme();
                 this.bindEvents();
                 this.checkDraft();
@@ -3346,7 +3691,7 @@
                     window.addEventListener('load', () => {
                         navigator.serviceWorker.register('/sw.js')
                             .then((reg) => {
-                                console.log('Service Worker registered');
+                                Logger.log('Service Worker registered');
                                 // Check for updates
                                 reg.addEventListener('updatefound', () => {
                                     const newWorker = reg.installing;
@@ -3360,7 +3705,7 @@
                                     });
                                 });
                             })
-                            .catch((err) => console.log('Service Worker registration failed:', err));
+                            .catch((err) => Logger.error('Service Worker registration failed:', err));
                     });
                 }
                 
@@ -3931,7 +4276,7 @@
                         this.showToast(`Exported ${notes.length} notes (JSON)`);
                     }
                 } catch (e) {
-                    console.error('Export failed:', e);
+                    Logger.error('Export failed:', e);
                     this.showToast('Export failed', true);
                 }
             },
@@ -4069,7 +4414,7 @@
                     this.updateSaveStatus('error');
                     const errorMsg = Utils.getErrorMessage(e);
                     this.showToast(errorMsg, true);
-                    console.error('Save error:', e);
+                    Logger.error('Save error:', e);
                     Utils.announceToScreenReader('Failed to save note');
                 } finally {
                     btn.disabled = false;
@@ -4678,7 +5023,7 @@
                         else this.showNoteContent(note, note, rv);
                         return;
                     } catch (e) {
-                        console.error('Invalid note data in URL');
+                        Logger.error('Invalid note data in URL:', e);
                     }
                 }
                 
